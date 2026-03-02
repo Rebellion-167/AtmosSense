@@ -1,18 +1,32 @@
 #include <Arduino.h>
+#include <DHT.h>
 
-// put function declarations here:
-int myFunction(int, int);
+#define DHTPIN 4
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+    Serial.begin(115200);
+    dht.begin();
+    Serial.println("DHT11 Indoor Air Quality - Phase 1");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+    if (isnan(temperature) || isnan(humidity)) {
+        Serial.println("Failed to read from DHT11!");
+        delay(2000);
+        return;
+    }
+
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.print(" °C | Humidity: ");
+    Serial.print(humidity);
+    Serial.println(" %");
+
+    delay(2000);
 }
