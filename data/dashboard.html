@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Room Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/raphael/raphael.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/justgage/justgage.min.js"></script>
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+
+  <!-- Location input modal -->
+  <div id="locationModal">
+    <div class="modal-box">
+      <h3>&#127759; Outside Weather</h3>
+      <p>Enter your city to display current outside temperature and humidity.</p>
+      <input type="text" id="cityInput" placeholder="e.g. London, Tokyo, New York" autocomplete="off" />
+      <button onclick="submitCity()">Show Weather</button>
+      <div id="modalError"></div>
+    </div>
+  </div>
+
+  <h2>Room Environment Dashboard</h2>
+
+  <!-- Outside weather widget -->
+  <div class="outside-header">
+    <div class="outside-weather">
+      <div class="weather-col">
+        <div class="label">&#127777; Outside Temp</div>
+        <div class="value"><span id="outsideTemp">--</span><span class="unit">°C</span></div>
+        <div class="loc" id="outsideLocation" onclick="showModal()" title="Click to change city">--</div>
+      </div>
+      <div class="weather-divider"></div>
+      <div class="weather-col">
+        <div class="label">&#128167; Outside Humidity</div>
+        <div class="value"><span id="outsideHum">--</span><span class="unit">%</span></div>
+        <div class="loc" id="outsideUpdated">&nbsp;</div>
+      </div>
+    </div>
+    <div id="weatherStatus"></div>
+  </div>
+
+  <!-- Main two-column grid -->
+  <div class="main-layout">
+
+    <!-- Row 1: Temperature -->
+    <div class="gauge-card">
+      <div class="card-title">&#127777; Indoor Temperature</div>
+      <div id="tempGauge" class="gauge"></div>
+      <div class="status-box">
+        <div class="status-label" id="tempLabel">--</div>
+        <div class="status-desc"  id="tempDesc">Waiting for data...</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-title">&#128200; Temperature History (°C)</div>
+      <div class="canvas-wrap"><canvas id="tempChart"></canvas></div>
+    </div>
+
+    <!-- Row 2: Humidity -->
+    <div class="gauge-card">
+      <div class="card-title">&#128167; Indoor Humidity</div>
+      <div id="humGauge" class="gauge"></div>
+      <div class="status-box">
+        <div class="status-label" id="humLabel">--</div>
+        <div class="status-desc"  id="humDesc">Waiting for data...</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-title">&#128201; Humidity History (%)</div>
+      <div class="canvas-wrap"><canvas id="humChart"></canvas></div>
+    </div>
+
+  </div><!-- end main-layout -->
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

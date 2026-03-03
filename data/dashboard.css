@@ -1,0 +1,37 @@
+body{font-family:Arial;margin:0;padding:20px;background:#f4f6f9;box-sizing:border-box;}
+h2{text-align:center;margin-bottom:16px;color:#222;}
+
+.outside-weather{display:inline-flex;align-items:center;gap:32px;background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,0.10);padding:14px 36px;margin:0 auto 24px auto;}
+.outside-weather .label{font-size:12px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+.outside-weather .value{font-size:26px;font-weight:bold;color:#222;}
+.outside-weather .unit{font-size:15px;color:#555;margin-left:3px;}
+.outside-weather .loc{font-size:12px;color:#aaa;margin-top:3px;cursor:pointer;text-decoration:underline dotted;}
+.weather-col{text-align:center;}
+.weather-divider{width:1px;height:56px;background:#e0e0e0;}
+#weatherStatus{font-size:13px;color:#e74c3c;text-align:center;margin-bottom:8px;}
+.outside-header{text-align:center;}
+
+.main-layout{display:grid;grid-template-columns:340px 1fr;gap:24px;width:100%;box-sizing:border-box;}
+
+.gauge-card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:18px 16px 14px 16px;text-align:center;display:flex;flex-direction:column;}
+.gauge-card .card-title{font-size:13px;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.gauge{width:300px;height:240px;margin:0 auto;flex-shrink:0;}
+
+.status-box{margin-top:12px;border-radius:10px;padding:10px 14px;background:#f8f9fa;border:1.5px solid #e0e0e0;flex:1;}
+.status-box .status-label{font-size:18px;font-weight:bold;color:#333;margin-bottom:4px;}
+.status-box .status-desc{font-size:12px;color:#777;line-height:1.5;}
+
+.chart-card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:14px 16px;display:flex;flex-direction:column;}
+.chart-card .card-title{font-size:13px;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;flex-shrink:0;}
+.chart-card .canvas-wrap{flex:1;position:relative;min-height:0;}
+.chart-card canvas{position:absolute;inset:0;width:100% !important;height:100% !important;}
+
+#locationModal{display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;}
+.modal-box{background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:36px 40px;max-width:360px;width:90%;text-align:center;}
+.modal-box h3{margin:0 0 8px 0;font-size:20px;color:#222;}
+.modal-box p{margin:0 0 20px 0;font-size:14px;color:#777;}
+.modal-box input{width:100%;box-sizing:border-box;padding:11px 14px;font-size:16px;border:1.5px solid #ddd;border-radius:8px;outline:none;transition:border 0.2s;}
+.modal-box input:focus{border-color:#4a90e2;}
+.modal-box button{margin-top:14px;width:100%;padding:11px;font-size:16px;font-weight:bold;background:#4a90e2;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:background 0.2s;}
+.modal-box button:hover{background:#2573c9;}
+#modalError{font-size:13px;color:#e74c3c;margin-top:8px;min-height:18px;}
