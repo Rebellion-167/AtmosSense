@@ -158,11 +158,34 @@ function submitCity() {
       var lon = parseFloat(results[0].lon);
       var displayName = results[0].display_name.split(',').slice(0, 2).join(', ');
       document.getElementById('outsideLocation').textContent = displayName;
-      hideModal();
-      fetchOutsideWeather(lat, lon);
-      if (weatherInterval) clearInterval(weatherInterval);
-      weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
-      if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 2000); }
+
+      // Fetch UTC offset from Open-Meteo using timezone=auto, then send to ESP32
+      document.getElementById('modalError').textContent = 'Syncing time...';
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=auto')
+        .then(r => r.json())
+        .then(function(tzData) {
+          var offsetSeconds = tzData.utc_offset_seconds || 0;
+          // POST UTC offset to ESP32 so it calls configTime() with the correct value
+          fetch('/timezone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'offset=' + offsetSeconds
+          }).catch(function() { console.warn('Could not sync timezone to ESP32'); });
+
+          hideModal();
+          fetchOutsideWeather(lat, lon);
+          if (weatherInterval) clearInterval(weatherInterval);
+          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
+          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 2000); }
+        })
+        .catch(function() {
+          // Timezone fetch failed — proceed anyway without syncing
+          hideModal();
+          fetchOutsideWeather(lat, lon);
+          if (weatherInterval) clearInterval(weatherInterval);
+          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
+          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 2000); }
+        });
     })
     .catch(function() {
       document.getElementById('modalError').textContent = 'Network error. Check connection.';

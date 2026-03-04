@@ -9,11 +9,7 @@
 #include "SensorStats.h"
 #include "WebHandlers.h"
 
-// NTP settings — adjust NTP_TZ_OFFSET to your timezone in seconds
-// UTC+5:30 (India) = 19800 | UTC+0 = 0 | UTC-5 (EST) = -18000 | UTC+1 (CET) = 3600
 #define NTP_SERVER     "pool.ntp.org"
-#define NTP_TZ_OFFSET  19800  // UTC+5:30 (IST)
-#define NTP_DST_OFFSET 0
 
 WebServer server(80);
 
@@ -37,16 +33,9 @@ void setup() {
     Serial.println("\nConnected!");
     Serial.println(WiFi.localIP());
 
-    // Sync time over NTP
-    configTime(NTP_TZ_OFFSET, NTP_DST_OFFSET, NTP_SERVER);
-    Serial.print("Syncing NTP time");
-    struct tm timeinfo;
-    while (!getLocalTime(&timeinfo)) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.printf("\nTime synced: %02d:%02d:%02d\n",
-                  timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    // NTP server is configured but timezone offset is set later via /timezone
+    // when the user enters their city on the dashboard
+    configTime(0, 0, NTP_SERVER);
 
     statsBegin();
 
