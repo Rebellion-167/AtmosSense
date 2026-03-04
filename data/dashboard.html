@@ -21,22 +21,29 @@
 
   <h2>Room Environment Dashboard</h2>
 
+  <!-- City + live clock bar -->
+  <div class="location-bar">
+    <span id="clockCity">&#127759; --</span>
+    <span class="location-bar-divider">|</span>
+    <span id="clockTime">--:--:--</span>
+  </div>
+
   <!-- Outside weather widget -->
   <div class="outside-header">
     <div class="outside-weather">
+    <div class="outside-weather-row">
       <div class="weather-col">
         <div class="label">&#127777; Outside Temp</div>
         <div class="value"><span id="outsideTemp">--</span><span class="unit">°C</span></div>
-        <div class="loc" id="outsideLocation" onclick="showModal()" title="Click to change city">--</div>
       </div>
       <div class="weather-divider"></div>
       <div class="weather-col">
         <div class="label">&#128167; Outside Humidity</div>
         <div class="value"><span id="outsideHum">--</span><span class="unit">%</span></div>
-        <div class="loc" id="outsideUpdated">&nbsp;</div>
       </div>
     </div>
-    <div id="weatherStatus"></div>
+    <div id="outsideUpdated" class="outside-updated">--</div>
+  </div>
   </div>
 
   <!-- Main two-column grid -->

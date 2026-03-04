@@ -118,6 +118,21 @@ var gasSectors = [
   { color: '#e67e22', lo: 1000, hi: 2000 }
 ];
 
+// ── Live clock (based on user's geolocation timezone, not browser local time) ──
+var _tzOffsetSeconds = null; // set when user submits city
+
+function getLocationTime() {
+  if (_tzOffsetSeconds === null) return '--:--:--';
+  var utcMs = Date.now() + (new Date().getTimezoneOffset() * 60000); // UTC in ms
+  var localMs = utcMs + (_tzOffsetSeconds * 1000);
+  var d = new Date(localMs);
+  return d.toLocaleTimeString('en-GB'); // HH:MM:SS 24hr format
+}
+
+setInterval(function() {
+  document.getElementById('clockTime').textContent = getLocationTime();
+}, 1000);
+
 // ── Status helpers ─────────────────────────────────────────────────────────────
 function tempLabel(t) {
   if (t < 10) return '&#10052; Dangerously Cold';
@@ -267,29 +282,30 @@ function submitCity() {
       var lat = parseFloat(results[0].lat);
       var lon = parseFloat(results[0].lon);
       var displayName = results[0].display_name.split(',').slice(0, 2).join(', ');
-      document.getElementById('outsideLocation').textContent = displayName;
+      document.getElementById('clockCity').innerHTML = '&#127759; ' + displayName;
 
       document.getElementById('modalError').textContent = 'Syncing time...';
       fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=auto')
         .then(r => r.json())
         .then(function(tzData) {
+          _tzOffsetSeconds = tzData.utc_offset_seconds || 0; // start location clock
           fetch('/timezone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'offset=' + (tzData.utc_offset_seconds || 0)
+            body: 'offset=' + _tzOffsetSeconds
           }).catch(function() { console.warn('Could not sync timezone to ESP32'); });
 
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
-          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
+          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 900000);
           if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 5000); } // 5s poll
         })
         .catch(function() {
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
-          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
+          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 900000);
           if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 5000); }
         });
     })
