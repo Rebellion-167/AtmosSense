@@ -1,30 +1,122 @@
-// ── Gauges ────────────────────────────────────────────────────────────────────
-var tempGauge = new JustGage({
-  id: 'tempGauge', value: 0, min: 0, max: 50, title: '',
-  width: 300, height: 240,
-  customSectors: [
-    { color: '#1a6faf', lo: 0,  hi: 10 },
-    { color: '#74b9e7', lo: 10, hi: 18 },
-    { color: '#2ecc71', lo: 18, hi: 24 },
-    { color: '#f39c12', lo: 24, hi: 28 },
-    { color: '#e67e22', lo: 28, hi: 35 },
-    { color: '#c0392b', lo: 35, hi: 50 }
-  ],
-  animationTime: 300
-});
+// ── Canvas Gauge drawing ───────────────────────────────────────────────────────
+// Replaces JustGage/Raphael entirely — no SVG overhead, pure Canvas 2D
 
-var humGauge = new JustGage({
-  id: 'humGauge', value: 0, min: 0, max: 100, title: '',
-  width: 300, height: 240,
-  customSectors: [
-    { color: '#c0392b', lo: 0,  hi: 20  },
-    { color: '#e67e22', lo: 20, hi: 30  },
-    { color: '#2ecc71', lo: 30, hi: 60  },
-    { color: '#f39c12', lo: 60, hi: 70  },
-    { color: '#2980b9', lo: 70, hi: 100 }
-  ],
-  animationTime: 300
-});
+function drawGauge(canvasId, value, min, max, sectors, unit) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  // Match canvas internal resolution to its CSS display size
+  var rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  || 300;
+  canvas.height = rect.height || 200;
+
+  var ctx = canvas.getContext('2d');
+  var w   = canvas.width;
+  var h   = canvas.height;
+
+  // Centre horizontally, sit in the lower 75% vertically so arc has headroom
+  var cx = w / 2;
+  var cy = h * 0.78;
+  var r  = Math.min(w * 0.42, cy * 0.88); // radius constrained to fit
+
+  ctx.clearRect(0, 0, w, h);
+
+  var startAngle = Math.PI * 0.75;  // bottom-left
+  var endAngle   = Math.PI * 2.25;  // bottom-right
+  var totalArc   = endAngle - startAngle;
+
+  // ── Coloured sector arcs ──────────────────────────────────────────────────
+  var arcWidth = r * 0.18;
+  sectors.forEach(function(s) {
+    var aStart = startAngle + ((s.lo - min) / (max - min)) * totalArc;
+    var aEnd   = startAngle + ((s.hi - min) / (max - min)) * totalArc;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, aStart, aEnd);
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth   = arcWidth;
+    ctx.lineCap     = 'butt';
+    ctx.stroke();
+  });
+
+  // ── Inner track (decorative ring) ─────────────────────────────────────────
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - arcWidth * 0.75, startAngle, endAngle);
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth   = 2;
+  ctx.stroke();
+
+  // ── Needle ────────────────────────────────────────────────────────────────
+  var clampedVal  = Math.min(Math.max(value, min), max);
+  var needleAngle = startAngle + ((clampedVal - min) / (max - min)) * totalArc;
+  var needleLen   = r - arcWidth - 6;
+  var baseW       = needleLen * 0.06;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(needleAngle);
+  ctx.beginPath();
+  ctx.moveTo(0,  baseW);
+  ctx.lineTo(needleLen, 0);
+  ctx.lineTo(0, -baseW);
+  ctx.closePath();
+  ctx.fillStyle = '#333';
+  ctx.fill();
+  ctx.restore();
+
+  // ── Pivot dot ─────────────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.arc(cx, cy, baseW * 1.8, 0, Math.PI * 2);
+  ctx.fillStyle = '#444';
+  ctx.fill();
+
+  // ── Value text ────────────────────────────────────────────────────────────
+  var fontSize = Math.round(r * 0.28);
+  ctx.fillStyle   = '#222';
+  ctx.font        = 'bold ' + fontSize + 'px Arial';
+  ctx.textAlign   = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(value != null ? value.toFixed(1) + unit : '--', cx, cy - r * 0.48);
+
+  // ── Min / Max tick labels ─────────────────────────────────────────────────
+  var labelFont = Math.round(r * 0.16) + 'px Arial';
+  ctx.fillStyle  = '#999';
+  ctx.font       = labelFont;
+  ctx.textBaseline = 'middle';
+
+  // Position labels at the start and end of the arc
+  var labelR = r + arcWidth * 0.8;
+  var minX = cx + labelR * Math.cos(startAngle);
+  var minY = cy + labelR * Math.sin(startAngle);
+  var maxX = cx + labelR * Math.cos(endAngle);
+  var maxY = cy + labelR * Math.sin(endAngle);
+
+  ctx.textAlign = 'right';
+  ctx.fillText(min, minX, minY);
+  ctx.textAlign = 'left';
+  ctx.fillText(max, maxX, maxY);
+}
+
+// Sector definitions
+var tempSectors = [
+  { color: '#1a6faf', lo: 0,  hi: 10 },
+  { color: '#74b9e7', lo: 10, hi: 18 },
+  { color: '#2ecc71', lo: 18, hi: 24 },
+  { color: '#f39c12', lo: 24, hi: 28 },
+  { color: '#e67e22', lo: 28, hi: 35 },
+  { color: '#c0392b', lo: 35, hi: 50 }
+];
+var humSectors = [
+  { color: '#c0392b', lo: 0,  hi: 20  },
+  { color: '#e67e22', lo: 20, hi: 30  },
+  { color: '#2ecc71', lo: 30, hi: 60  },
+  { color: '#f39c12', lo: 60, hi: 70  },
+  { color: '#2980b9', lo: 70, hi: 100 }
+];
+var gasSectors = [
+  { color: '#2ecc71', lo: 0,    hi: 400  },
+  { color: '#f39c12', lo: 400,  hi: 1000 },
+  { color: '#e67e22', lo: 1000, hi: 2000 }
+];
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 function tempLabel(t) {
@@ -35,7 +127,6 @@ function tempLabel(t) {
   if (t < 35) return '&#128293; Hot';
   return '&#9763; Dangerously Hot';
 }
-
 function tempDesc(t) {
   if (t < 10) return 'Risk of hypothermia. Heating strongly recommended.';
   if (t < 18) return 'Below comfort range. Consider warming the room.';
@@ -44,7 +135,6 @@ function tempDesc(t) {
   if (t < 35) return 'Uncomfortable heat. Use fan or A/C.';
   return 'Dangerous heat level. Take immediate action.';
 }
-
 function humLabel(h) {
   if (h < 20) return '&#128033; Very Dry';
   if (h < 30) return '&#127797; Dry';
@@ -52,7 +142,6 @@ function humLabel(h) {
   if (h < 70) return '&#128167; Humid';
   return '&#127783; Very Humid';
 }
-
 function humDesc(h) {
   if (h < 20) return 'Skin & eye irritation likely. Static buildup risk. Use humidifier.';
   if (h < 30) return 'Below ideal range. A humidifier may improve comfort.';
@@ -60,35 +149,48 @@ function humDesc(h) {
   if (h < 70) return 'Approaching uncomfortable levels. Ventilate if possible.';
   return 'Mold and dust-mite risk. Use dehumidifier or ventilate.';
 }
+function gasLabel(g) {
+  if (g <= 0)   return '&#128268; Sensor not connected';
+  if (g < 400)  return '&#127807; Fresh Air';
+  if (g < 1000) return '&#9989; Normal';
+  if (g < 2000) return '&#128168; Poor Air Quality';
+  return '&#9763; Very Poor Air Quality';
+}
+function gasDesc(g) {
+  if (g <= 0)   return 'MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.';
+  if (g < 400)  return 'Excellent air quality. Better than typical indoor air.';
+  if (g < 1000) return 'Normal indoor air quality. No action needed.';
+  if (g < 2000) return 'Air quality is poor. Open windows and ventilate the room.';
+  return 'Dangerous air quality. Ventilate immediately.';
+}
 
 // ── Charts ─────────────────────────────────────────────────────────────────────
+var chartOpts = { responsive: true, maintainAspectRatio: false, animation: false };
+
 const tempChart = new Chart(document.getElementById('tempChart'), {
   type: 'line',
-  data: {
-    labels: [],
-    datasets: [{ label: 'Temperature (\u00b0C)', data: [], borderColor: 'red', borderWidth: 2, pointRadius: 2, tension: 0 }]
-  },
-  options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 50 } } }
+  data: { labels: [], datasets: [{ label: 'Temperature (\u00b0C)', data: [], borderColor: 'red',      borderWidth: 2, pointRadius: 2, tension: 0 }] },
+  options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 50 } } })
 });
-
 const humChart = new Chart(document.getElementById('humChart'), {
   type: 'line',
-  data: {
-    labels: [],
-    datasets: [{ label: 'Humidity (%)', data: [], borderColor: 'blue', borderWidth: 2, pointRadius: 2, tension: 0 }]
-  },
-  options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100 } } }
+  data: { labels: [], datasets: [{ label: 'Humidity (%)',          data: [], borderColor: 'blue',     borderWidth: 2, pointRadius: 2, tension: 0 }] },
+  options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 100 } } })
+});
+const gasChart = new Chart(document.getElementById('gasChart'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Air Quality (ppm)',     data: [], borderColor: '#27ae60', borderWidth: 2, pointRadius: 2, tension: 0 }] },
+  options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 2000 } } })
 });
 
-// ── Min / Max tracking ─────────────────────────────────────────────────────────
-// Min/max is tracked server-side on the ESP32 and reset at midnight via NTP.
-// The /data endpoint includes minTemp, maxTemp, minHum, maxHum in its response.
-
+// ── Min / Max display ─────────────────────────────────────────────────────────
 function updateMinMaxDisplay(data) {
   document.getElementById('minTemp').textContent = data.minTemp > 0 ? data.minTemp.toFixed(1) : '--';
   document.getElementById('maxTemp').textContent = data.maxTemp > 0 ? data.maxTemp.toFixed(1) : '--';
   document.getElementById('minHum').textContent  = data.minHum  > 0 ? data.minHum.toFixed(1)  : '--';
   document.getElementById('maxHum').textContent  = data.maxHum  > 0 ? data.maxHum.toFixed(1)  : '--';
+  document.getElementById('minGas').textContent  = data.minGas  > 0 ? Math.round(data.minGas) : '--';
+  document.getElementById('maxGas').textContent  = data.maxGas  > 0 ? Math.round(data.maxGas) : '--';
 }
 
 // ── Sensor polling ─────────────────────────────────────────────────────────────
@@ -97,31 +199,40 @@ var dataInterval = null;
 function updateData() {
   fetch('/data').then(r => r.json()).then(data => {
     var time = new Date().toLocaleTimeString();
+    var gas  = data.gas || 0;
 
-    tempGauge.refresh(data.temperature);
-    humGauge.refresh(data.humidity);
+    // Redraw canvas gauges
+    drawGauge('tempGaugeCanvas', data.temperature, 0,   50,   tempSectors, '\u00b0C');
+    drawGauge('humGaugeCanvas',  data.humidity,    0,   100,  humSectors,  '%');
+    drawGauge('gasGaugeCanvas',  gas,              0,   2000, gasSectors,  'ppm');
 
+    // Status labels
     document.getElementById('tempLabel').innerHTML = tempLabel(data.temperature);
     document.getElementById('tempDesc').innerHTML  = tempDesc(data.temperature);
     document.getElementById('humLabel').innerHTML  = humLabel(data.humidity);
     document.getElementById('humDesc').innerHTML   = humDesc(data.humidity);
+    document.getElementById('gasLabel').innerHTML  = gasLabel(gas);
+    document.getElementById('gasDesc').innerHTML   = gasDesc(gas);
 
     updateMinMaxDisplay(data);
 
+    // Push to charts — shared labels array
     tempChart.data.labels.push(time);
     tempChart.data.datasets[0].data.push(data.temperature);
     humChart.data.labels.push(time);
     humChart.data.datasets[0].data.push(data.humidity);
+    gasChart.data.labels.push(time);
+    gasChart.data.datasets[0].data.push(gas);
 
-    if (tempChart.data.labels.length > 15) {
-      tempChart.data.labels.shift();
-      tempChart.data.datasets[0].data.shift();
-      humChart.data.labels.shift();
-      humChart.data.datasets[0].data.shift();
+    if (tempChart.data.labels.length > 20) {
+      tempChart.data.labels.shift(); tempChart.data.datasets[0].data.shift();
+      humChart.data.labels.shift();  humChart.data.datasets[0].data.shift();
+      gasChart.data.labels.shift();  gasChart.data.datasets[0].data.shift();
     }
 
-    tempChart.update();
-    humChart.update();
+    tempChart.update('none'); // 'none' skips Chart.js animation entirely
+    humChart.update('none');
+    gasChart.update('none');
   });
 }
 
@@ -133,7 +244,6 @@ function showModal() {
   document.getElementById('modalError').textContent = '';
   document.getElementById('cityInput').focus();
 }
-
 function hideModal() {
   document.getElementById('locationModal').style.display = 'none';
 }
@@ -159,32 +269,28 @@ function submitCity() {
       var displayName = results[0].display_name.split(',').slice(0, 2).join(', ');
       document.getElementById('outsideLocation').textContent = displayName;
 
-      // Fetch UTC offset from Open-Meteo using timezone=auto, then send to ESP32
       document.getElementById('modalError').textContent = 'Syncing time...';
       fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=auto')
         .then(r => r.json())
         .then(function(tzData) {
-          var offsetSeconds = tzData.utc_offset_seconds || 0;
-          // POST UTC offset to ESP32 so it calls configTime() with the correct value
           fetch('/timezone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'offset=' + offsetSeconds
+            body: 'offset=' + (tzData.utc_offset_seconds || 0)
           }).catch(function() { console.warn('Could not sync timezone to ESP32'); });
 
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
           weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
-          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 2000); }
+          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 5000); } // 5s poll
         })
         .catch(function() {
-          // Timezone fetch failed — proceed anyway without syncing
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
           weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 120000);
-          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 2000); }
+          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 5000); }
         });
     })
     .catch(function() {
@@ -208,5 +314,4 @@ function fetchOutsideWeather(lat, lon) {
     });
 }
 
-// Show modal immediately on page load
 showModal();

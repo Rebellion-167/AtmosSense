@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <title>Room Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/raphael/raphael.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/justgage/justgage.min.js"></script>
   <link rel="stylesheet" href="/dashboard.css">
 </head>
 <body>
@@ -47,7 +45,7 @@
     <!-- Row 1: Temperature -->
     <div class="gauge-card">
       <div class="card-title">&#127777; Indoor Temperature</div>
-      <div id="tempGauge" class="gauge"></div>
+      <canvas id="tempGaugeCanvas" class="gauge" width="300" height="220"></canvas>
       <div class="status-box">
         <div class="status-label" id="tempLabel">--</div>
         <div class="status-desc"  id="tempDesc">Waiting for data...</div>
@@ -77,7 +75,7 @@
     <!-- Row 2: Humidity -->
     <div class="gauge-card">
       <div class="card-title">&#128167; Indoor Humidity</div>
-      <div id="humGauge" class="gauge"></div>
+      <canvas id="humGaugeCanvas" class="gauge" width="300" height="220"></canvas>
       <div class="status-box">
         <div class="status-label" id="humLabel">--</div>
         <div class="status-desc"  id="humDesc">Waiting for data...</div>
@@ -102,6 +100,36 @@
     <div class="chart-card">
       <div class="card-title">&#128201; Humidity History (%)</div>
       <div class="canvas-wrap"><canvas id="humChart"></canvas></div>
+    </div>
+
+    <!-- Row 3: Air Quality (MQ-135) -->
+    <div class="gauge-card">
+      <div class="card-title">&#127807; Air Quality (ppm)</div>
+      <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+      <div class="status-box">
+        <div class="status-label" id="gasLabel">&#128268; Sensor not connected</div>
+        <div class="status-desc"  id="gasDesc">MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.</div>
+      </div>
+      <div class="minmax-strip">
+        <div class="minmax-item">
+          <span class="minmax-icon">&#8595;</span>
+          <span class="minmax-label">Min</span>
+          <span class="minmax-value" id="minGas">--</span>
+          <span class="minmax-unit">ppm</span>
+        </div>
+        <div class="minmax-divider"></div>
+        <div class="minmax-item">
+          <span class="minmax-icon">&#8593;</span>
+          <span class="minmax-label">Max</span>
+          <span class="minmax-value" id="maxGas">--</span>
+          <span class="minmax-unit">ppm</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-title">&#128202; Air Quality History (ppm)</div>
+      <div class="canvas-wrap"><canvas id="gasChart"></canvas></div>
     </div>
 
   </div><!-- end main-layout -->
