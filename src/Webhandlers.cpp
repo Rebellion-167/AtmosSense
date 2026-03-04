@@ -1,10 +1,10 @@
 #include "WebHandlers.h"
 #include "SensorReader.h"
+#include "SensorStats.h"
 #include <SPIFFS.h>
 
 static WebServer* _server = nullptr;
 
-// Helper: read a file from SPIFFS and send it
 static void serveFile(const char* path, const char* contentType) {
     if (!SPIFFS.exists(path)) {
         _server->send(404, "text/plain", "File not found");
@@ -15,38 +15,41 @@ static void serveFile(const char* path, const char* contentType) {
     file.close();
 }
 
-// ── /  ────────────────────────────────────────────────────────────────────────
 static void handleRoot() {
     serveFile("/dashboard.html", "text/html");
 }
 
-// ── /dashboard.css  ───────────────────────────────────────────────────────────
 static void handleCss() {
     serveFile("/dashboard.css", "text/css");
 }
 
-// ── /dashboard.js  ────────────────────────────────────────────────────────────
 static void handleJs() {
     serveFile("/dashboard.js", "application/javascript");
 }
 
-// ── /data  ────────────────────────────────────────────────────────────────────
 static void handleData() {
-    float temperature = readTemperature();
-    float humidity    = readHumidity();
+    float temp = readTemperature();
+    float hum  = readHumidity();
 
-    String json = "{\"temperature\":" + String(temperature) +
-                  ",\"humidity\":"    + String(humidity)    + "}";
+    statsUpdate(temp, hum);
+
+    String json = "{";
+    json += "\"temperature\":"  + String(temp, 1) + ",";
+    json += "\"humidity\":"     + String(hum,  1) + ",";
+    json += "\"minTemp\":"      + String(statsMinTemp(), 1) + ",";
+    json += "\"maxTemp\":"      + String(statsMaxTemp(), 1) + ",";
+    json += "\"minHum\":"       + String(statsMinHum(),  1) + ",";
+    json += "\"maxHum\":"       + String(statsMaxHum(),  1);
+    json += "}";
 
     _server->send(200, "application/json", json);
 }
 
-// ── Registration  ─────────────────────────────────────────────────────────────
 void registerRoutes(WebServer& server) {
     _server = &server;
     server.on("/",              handleRoot);
     server.on("/dashboard.css", handleCss);
     server.on("/dashboard.js",  handleJs);
     server.on("/data",          handleData);
-    server.on("/favicon.ico",   [&server]() {server.send(204); }); // suppress browser icon request
+    server.on("/favicon.ico",   [&server]() { server.send(204); });
 }

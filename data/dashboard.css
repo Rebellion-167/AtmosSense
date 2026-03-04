@@ -35,3 +35,12 @@ h2{text-align:center;margin-bottom:16px;color:#222;}
 .modal-box button{margin-top:14px;width:100%;padding:11px;font-size:16px;font-weight:bold;background:#4a90e2;color:#fff;border:none;border-radius:8px;cursor:pointer;transition:background 0.2s;}
 .modal-box button:hover{background:#2573c9;}
 #modalError{font-size:13px;color:#e74c3c;margin-top:8px;min-height:18px;}
+
+/* ── Min/Max strip ───────────────────────────────────────────────────────── */
+.minmax-strip{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;background:#f0f4ff;border:1.5px solid #d0d9f0;border-radius:10px;padding:10px 14px;}
+.minmax-item{display:flex;align-items:center;gap:5px;}
+.minmax-icon{font-size:14px;}
+.minmax-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;}
+.minmax-value{font-size:18px;font-weight:bold;color:#333;margin-left:2px;}
+.minmax-unit{font-size:12px;color:#777;}
+.minmax-divider{width:1px;height:30px;background:#c8d0e8;margin:0 6px;}

@@ -80,6 +80,17 @@ const humChart = new Chart(document.getElementById('humChart'), {
   options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { y: { min: 0, max: 100 } } }
 });
 
+// ── Min / Max tracking ─────────────────────────────────────────────────────────
+// Min/max is tracked server-side on the ESP32 and reset at midnight via NTP.
+// The /data endpoint includes minTemp, maxTemp, minHum, maxHum in its response.
+
+function updateMinMaxDisplay(data) {
+  document.getElementById('minTemp').textContent = data.minTemp > 0 ? data.minTemp.toFixed(1) : '--';
+  document.getElementById('maxTemp').textContent = data.maxTemp > 0 ? data.maxTemp.toFixed(1) : '--';
+  document.getElementById('minHum').textContent  = data.minHum  > 0 ? data.minHum.toFixed(1)  : '--';
+  document.getElementById('maxHum').textContent  = data.maxHum  > 0 ? data.maxHum.toFixed(1)  : '--';
+}
+
 // ── Sensor polling ─────────────────────────────────────────────────────────────
 var dataInterval = null;
 
@@ -94,6 +105,8 @@ function updateData() {
     document.getElementById('tempDesc').innerHTML  = tempDesc(data.temperature);
     document.getElementById('humLabel').innerHTML  = humLabel(data.humidity);
     document.getElementById('humDesc').innerHTML   = humDesc(data.humidity);
+
+    updateMinMaxDisplay(data);
 
     tempChart.data.labels.push(time);
     tempChart.data.datasets[0].data.push(data.temperature);
