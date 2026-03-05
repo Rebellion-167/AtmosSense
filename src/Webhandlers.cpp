@@ -1,7 +1,8 @@
-#include "Webhandlers.h"
+#include "WebHandlers.h"
 #include "SensorReader.h"
 #include "SensorStats.h"
 #include "AqiConverter.h"
+#include "AlertManager.h"
 #include <SPIFFS.h>
 
 static WebServer* _server = nullptr;
@@ -31,29 +32,54 @@ static void handleJs() {
 static void handleData() {
     float temp = readTemperature();
     float hum  = readHumidity();
-    float gas  = -999.0f; // replace with readGas() when MQ-135 is connected
+    float gas  = -999.0f;
 
-    bool warmedUp  = sensorWarmedUp();               // false only during boot warmup
-    bool dhtReady  = (temp != -999.0f && hum != -999.0f); // false if unplugged at any time
-    bool gasReady  = (gas  != -999.0f && gas > 0);
+    bool warmedUp = sensorWarmedUp();
+    bool dhtReady = (temp != -999.0f && hum != -999.0f);
+    bool gasReady = (gas  != -999.0f && gas > 0);
 
-    if (dhtReady) statsUpdate(temp, hum, gas);
+    if (dhtReady) {
+        statsUpdate(temp, hum, gas);
+        alertUpdate(temp, hum, gas);
+    }
 
-    String json = "{";
-    json += "\"ready\":"        + String(warmedUp  ? "true" : "false") + ",";
-    json += "\"dhtConnected\":" + String(dhtReady  ? "true" : "false") + ",";
-    json += "\"gasConnected\":" + String(gasReady  ? "true" : "false") + ",";
-    json += "\"temperature\":"  + String(dhtReady ? temp : 0.0f, 1) + ",";
-    json += "\"humidity\":"     + String(dhtReady ? hum  : 0.0f, 1) + ",";
-    json += "\"gas\":"          + String(gasReady ? gas  : 0.0f, 1) + ",";
-    json += "\"aqi\":"          + String(ppmToAqi(gasReady ? gas : 0)) + ",";
-    json += "\"minTemp\":"      + String(statsMinTemp(), 1) + ",";
-    json += "\"maxTemp\":"      + String(statsMaxTemp(), 1) + ",";
-    json += "\"minHum\":"       + String(statsMinHum(),  1) + ",";
-    json += "\"maxHum\":"       + String(statsMaxHum(),  1) + ",";
-    json += "\"minGas\":"       + String(statsMinGas(),  1) + ",";
-    json += "\"maxGas\":"       + String(statsMaxGas(),  1);
-    json += "}";
+    float tDisplay  = dhtReady ? temp : 0.0f;
+    float hDisplay  = dhtReady ? hum  : 0.0f;
+    float gDisplay  = gasReady ? gas  : 0.0f;
+    int   aqi       = ppmToAqi(gasReady ? gas : 0);
+    int   alertLvl  = (int)alertGetLevel();
+
+    // Plain ASCII only — no special chars that could corrupt JSON
+    const char* reason = alertGetReason();
+
+    char json[512];
+    snprintf(json, sizeof(json),
+        "{"
+        "\"ready\":%s,"
+        "\"dhtConnected\":%s,"
+        "\"gasConnected\":%s,"
+        "\"temperature\":%.1f,"
+        "\"humidity\":%.1f,"
+        "\"gas\":%.1f,"
+        "\"aqi\":%d,"
+        "\"alertLevel\":%d,"
+        "\"alertReason\":\"%s\","
+        "\"minTemp\":%.1f,"
+        "\"maxTemp\":%.1f,"
+        "\"minHum\":%.1f,"
+        "\"maxHum\":%.1f,"
+        "\"minGas\":%.1f,"
+        "\"maxGas\":%.1f"
+        "}",
+        warmedUp ? "true" : "false",
+        dhtReady ? "true" : "false",
+        gasReady ? "true" : "false",
+        tDisplay, hDisplay, gDisplay,
+        aqi, alertLvl, reason,
+        statsMinTemp(), statsMaxTemp(),
+        statsMinHum(),  statsMaxHum(),
+        statsMinGas(),  statsMaxGas()
+    );
 
     _server->send(200, "application/json", json);
 }
@@ -74,12 +100,24 @@ static void handleTimezone() {
     _server->send(200, "text/plain", "OK");
 }
 
+static void handleClimate() {
+    if (!_server->hasArg("meanTemp") || !_server->hasArg("meanHum")) {
+        _server->send(400, "text/plain", "Missing meanTemp or meanHum");
+        return;
+    }
+    float meanTemp = _server->arg("meanTemp").toFloat();
+    float meanHum  = _server->arg("meanHum").toFloat();
+    alertSetClimate(meanTemp, meanHum);
+    _server->send(200, "text/plain", "OK");
+}
+
 void registerRoutes(WebServer& server) {
     _server = &server;
     server.on("/",              handleRoot);
     server.on("/dashboard.css", handleCss);
     server.on("/dashboard.js",  handleJs);
     server.on("/data",          handleData);
+    server.on("/climate",       HTTP_POST, handleClimate);
     server.on("/timezone",      HTTP_POST, handleTimezone);
     server.on("/favicon.ico",   [&server]() { server.send(204); });
 }

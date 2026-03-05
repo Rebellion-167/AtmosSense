@@ -8,6 +8,7 @@
 #include "SensorReader.h"
 #include "SensorStats.h"
 #include "WebHandlers.h"
+#include "AlertManager.h"
 
 #define NTP_SERVER     "pool.ntp.org"
 
@@ -21,6 +22,16 @@ void setup() {
         return;
     }
     Serial.println("SPIFFS mounted");
+
+    alertBegin();
+
+    // Brief LED self-test so you can verify wiring on every boot
+    digitalWrite(LED_RED,    HIGH); delay(300);
+    digitalWrite(LED_RED,    LOW);
+    digitalWrite(LED_YELLOW, HIGH); delay(300);
+    digitalWrite(LED_YELLOW, LOW);
+    digitalWrite(LED_GREEN,  HIGH); delay(300);
+    digitalWrite(LED_GREEN,  LOW);
 
     sensorBegin();
 

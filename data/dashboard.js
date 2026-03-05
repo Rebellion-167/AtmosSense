@@ -235,7 +235,9 @@ function updateMinMaxDisplay(data) {
 var dataInterval = null;
 
 function updateData() {
-  fetch('/data').then(r => r.json()).then(data => {
+  fetch('/data')
+    .then(r => r.json())
+    .then(data => {
     var time = new Date().toLocaleTimeString();
     var gas  = data.gas || 0;
 
@@ -246,6 +248,23 @@ function updateData() {
       return;
     }
     banner.style.display = 'none';
+
+    // ── Alert bar ─────────────────────────────────────────────────────────────
+    var alertBar = document.getElementById('alertBar');
+    var alertMsg = document.getElementById('alertMsg');
+    if (alertBar && alertMsg) {
+      alertBar.className = 'alert-bar';
+      if (data.alertLevel === 2) {
+        alertBar.classList.add('alert-danger');
+        alertMsg.textContent = 'DANGER: ' + (data.alertReason || 'Danger');
+      } else if (data.alertLevel === 1) {
+        alertBar.classList.add('alert-warn');
+        alertMsg.textContent = 'WARNING: ' + (data.alertReason || 'Warning');
+      } else {
+        alertBar.classList.add('alert-none');
+        alertMsg.textContent = 'All parameters normal';
+      }
+    }
 
     // Show/hide sensor-not-detected overlays per sensor
     var dhtOk = data.dhtConnected !== false;
@@ -302,6 +321,9 @@ function updateData() {
     tempChart.update('none');
     humChart.update('none');
     gasChart.update('none');
+  })
+  .catch(function(err) {
+    console.error('[updateData] fetch/parse error:', err);
   });
 }
 
@@ -349,6 +371,30 @@ function submitCity() {
             body: 'offset=' + _tzOffsetSeconds
           }).catch(function() { console.warn('Could not sync timezone to ESP32'); });
 
+          // Fetch 30-day rolling mean as local climate baseline for alert thresholds
+          fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat +
+                '&longitude=' + lon +
+                '&daily=temperature_2m_mean,relative_humidity_2m_mean' +
+                '&past_days=30&forecast_days=0&timezone=auto')
+            .then(r => r.json())
+            .then(function(climate) {
+              var temps = climate.daily && climate.daily.temperature_2m_mean;
+              var hums  = climate.daily && climate.daily.relative_humidity_2m_mean;
+              if (temps && hums && temps.length > 0) {
+                var validTemps = temps.filter(function(v) { return v !== null; });
+                var validHums  = hums.filter(function(v)  { return v !== null; });
+                var meanTemp = validTemps.reduce(function(a,b){return a+b;},0) / validTemps.length;
+                var meanHum  = validHums.reduce(function(a,b){return a+b;},0)  / validHums.length;
+                fetch('/climate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: 'meanTemp=' + meanTemp.toFixed(1) + '&meanHum=0'
+                }).catch(function() { console.warn('Could not send climate normals to ESP32'); });
+                console.log('30-day temp baseline: ' + meanTemp.toFixed(1) + 'C');
+              }
+            })
+            .catch(function() { console.warn('Could not fetch climate baseline'); });
+
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
@@ -378,7 +424,6 @@ function aqiLabel(aqi) {
 }
 
 function fetchOutsideWeather(lat, lon) {
-  // Weather + AQI fetched in parallel
   var weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
                  + '&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius';
   var aqiUrl     = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon
@@ -389,26 +434,26 @@ function fetchOutsideWeather(lat, lon) {
       var weather = results[0];
       var air     = results[1];
 
-      document.getElementById('outsideTemp').textContent = weather.current.temperature_2m.toFixed(1);
-      document.getElementById('outsideHum').textContent  = weather.current.relative_humidity_2m;
+      var el;
+      if ((el = document.getElementById('outsideTemp')))    el.textContent = weather.current.temperature_2m.toFixed(1);
+      if ((el = document.getElementById('outsideHum')))     el.textContent = weather.current.relative_humidity_2m;
 
       var aqi = air.current && air.current.us_aqi != null ? Math.round(air.current.us_aqi) : null;
       if (aqi !== null) {
         var label = aqiLabel(aqi);
-        document.getElementById('outsideAqi').textContent      = aqi;
-        document.getElementById('outsideAqi').style.color      = label.color;
-        document.getElementById('outsideAqiLabel').textContent = label.text;
-        document.getElementById('outsideAqiLabel').style.color = label.color;
+        if ((el = document.getElementById('outsideAqi')))      { el.textContent = aqi;        el.style.color = label.color; }
+        if ((el = document.getElementById('outsideAqiLabel'))) { el.textContent = label.text; el.style.color = label.color; }
       } else {
-        document.getElementById('outsideAqi').textContent      = '--';
-        document.getElementById('outsideAqiLabel').textContent = '';
+        if ((el = document.getElementById('outsideAqi')))      el.textContent = '--';
+        if ((el = document.getElementById('outsideAqiLabel'))) el.textContent = '';
       }
 
-      document.getElementById('outsideUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-      document.getElementById('weatherStatus').textContent  = '';
+      if ((el = document.getElementById('outsideUpdated'))) el.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+      if ((el = document.getElementById('weatherStatus')))  el.textContent = '';
     })
     .catch(function() {
-      document.getElementById('weatherStatus').textContent = 'Could not fetch weather data.';
+      var el = document.getElementById('weatherStatus');
+      if (el) el.textContent = 'Could not fetch weather data.';
     });
 }
 
