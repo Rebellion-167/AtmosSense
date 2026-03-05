@@ -216,6 +216,14 @@ function updateData() {
     var time = new Date().toLocaleTimeString();
     var gas  = data.gas || 0;
 
+    // Show warmup banner until sensor is ready
+    var banner = document.getElementById('warmupBanner');
+    if (!data.ready) {
+      banner.style.display = 'flex';
+      return; // don't update gauges with invalid data
+    }
+    banner.style.display = 'none';
+
     // Redraw canvas gauges
     drawGauge('tempGaugeCanvas', data.temperature, 0,   50,   tempSectors, '\u00b0C');
     drawGauge('humGaugeCanvas',  data.humidity,    0,   100,  humSectors,  '%');
@@ -314,14 +322,42 @@ function submitCity() {
     });
 }
 
+function aqiLabel(aqi) {
+  if (aqi <= 50)  return { text: 'Good',            color: '#2ecc71' };
+  if (aqi <= 100) return { text: 'Moderate',         color: '#f39c12' };
+  if (aqi <= 150) return { text: 'Unhealthy for Some', color: '#e67e22' };
+  if (aqi <= 200) return { text: 'Unhealthy',        color: '#e74c3c' };
+  if (aqi <= 300) return { text: 'Very Unhealthy',   color: '#8e44ad' };
+  return           { text: 'Hazardous',              color: '#7f0000' };
+}
+
 function fetchOutsideWeather(lat, lon) {
-  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
-          + '&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius';
-  fetch(url)
-    .then(r => r.json())
-    .then(function(d) {
-      document.getElementById('outsideTemp').textContent    = d.current.temperature_2m.toFixed(1);
-      document.getElementById('outsideHum').textContent     = d.current.relative_humidity_2m;
+  // Weather + AQI fetched in parallel
+  var weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
+                 + '&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius';
+  var aqiUrl     = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon
+                 + '&current=us_aqi';
+
+  Promise.all([fetch(weatherUrl).then(r => r.json()), fetch(aqiUrl).then(r => r.json())])
+    .then(function(results) {
+      var weather = results[0];
+      var air     = results[1];
+
+      document.getElementById('outsideTemp').textContent = weather.current.temperature_2m.toFixed(1);
+      document.getElementById('outsideHum').textContent  = weather.current.relative_humidity_2m;
+
+      var aqi = air.current && air.current.us_aqi != null ? Math.round(air.current.us_aqi) : null;
+      if (aqi !== null) {
+        var label = aqiLabel(aqi);
+        document.getElementById('outsideAqi').textContent      = aqi;
+        document.getElementById('outsideAqi').style.color      = label.color;
+        document.getElementById('outsideAqiLabel').textContent = label.text;
+        document.getElementById('outsideAqiLabel').style.color = label.color;
+      } else {
+        document.getElementById('outsideAqi').textContent      = '--';
+        document.getElementById('outsideAqiLabel').textContent = '';
+      }
+
       document.getElementById('outsideUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
       document.getElementById('weatherStatus').textContent  = '';
     })

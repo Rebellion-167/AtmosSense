@@ -21,6 +21,12 @@
 
   <h2>Room Environment Dashboard</h2>
 
+  <!-- Sensor warmup banner — hidden once sensor is ready -->
+  <div id="warmupBanner" class="warmup-banner" style="display:none;">
+    <span class="warmup-spinner"></span>
+    &#127777; Sensor warming up — readings will appear shortly...
+  </div>
+
   <!-- City + live clock bar -->
   <div class="location-bar">
     <span id="clockCity">&#127759; --</span>
@@ -40,6 +46,12 @@
       <div class="weather-col">
         <div class="label">&#128167; Outside Humidity</div>
         <div class="value"><span id="outsideHum">--</span><span class="unit">%</span></div>
+      </div>
+      <div class="weather-divider"></div>
+      <div class="weather-col">
+        <div class="label">&#127807; Outside AQI</div>
+        <div class="value"><span id="outsideAqi">--</span></div>
+        <div class="aqi-label" id="outsideAqiLabel">&nbsp;</div>
       </div>
     </div>
     <div id="outsideUpdated" class="outside-updated">--</div>

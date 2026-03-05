@@ -26,18 +26,21 @@ static void resetStats() {
 }
 
 void statsUpdate(float temp, float hum) {
-    if (temp == 0 && hum == 0) return; // ignore sensor error readings
-
-    if (temp < _minTemp) _minTemp = temp;
-    if (temp > _maxTemp) _maxTemp = temp;
-    if (hum  < _minHum)  _minHum  = hum;
-    if (hum  > _maxHum)  _maxHum  = hum;
+    // -999 is the sentinel error value from SensorReader — ignore each independently
+    if (temp != -999.0f) {
+        if (temp < _minTemp) _minTemp = temp;
+        if (temp > _maxTemp) _maxTemp = temp;
+    }
+    if (hum != -999.0f) {
+        if (hum < _minHum) _minHum = hum;
+        if (hum > _maxHum) _maxHum = hum;
+    }
 }
 
-float statsMinTemp() { return _minTemp ==  FLT_MAX ? 0 : _minTemp; }
-float statsMaxTemp() { return _maxTemp == -FLT_MAX ? 0 : _maxTemp; }
-float statsMinHum()  { return _minHum  ==  FLT_MAX ? 0 : _minHum;  }
-float statsMaxHum()  { return _maxHum  == -FLT_MAX ? 0 : _maxHum;  }
+float statsMinTemp() { return _minTemp ==  FLT_MAX ? -1 : _minTemp; }
+float statsMaxTemp() { return _maxTemp == -FLT_MAX ? -1 : _maxTemp; }
+float statsMinHum()  { return _minHum  ==  FLT_MAX ? -1 : _minHum;  }
+float statsMaxHum()  { return _maxHum  == -FLT_MAX ? -1 : _maxHum;  }
 
 void statsCheckMidnightReset() {
     struct tm timeinfo;

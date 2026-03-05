@@ -31,11 +31,17 @@ static void handleData() {
     float temp = readTemperature();
     float hum  = readHumidity();
 
-    statsUpdate(temp, hum);
+    bool ready = (temp != -999.0f && hum != -999.0f);
+
+    if (ready) statsUpdate(temp, hum);
+
+    float tDisplay = ready ? temp : 0.0f;
+    float hDisplay = ready ? hum  : 0.0f;
 
     String json = "{";
-    json += "\"temperature\":"  + String(temp, 1) + ",";
-    json += "\"humidity\":"     + String(hum,  1) + ",";
+    json += "\"ready\":"        + String(ready ? "true" : "false") + ",";
+    json += "\"temperature\":"  + String(tDisplay, 1) + ",";
+    json += "\"humidity\":"     + String(hDisplay, 1) + ",";
     json += "\"minTemp\":"      + String(statsMinTemp(), 1) + ",";
     json += "\"maxTemp\":"      + String(statsMaxTemp(), 1) + ",";
     json += "\"minHum\":"       + String(statsMinHum(),  1) + ",";
