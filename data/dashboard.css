@@ -57,3 +57,11 @@ h2{text-align:center;margin-bottom:16px;color:#222;}
 /* ── Warmup banner ───────────────────────────────────────────────────────── */
 .warmup-banner{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:10px 20px;margin-bottom:16px;font-size:14px;color:#795548;}
 .warmup-spinner{width:14px;height:14px;border:2px solid #ffe082;border-top-color:#f39c12;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+
+/* ── Indoor AQI badge ────────────────────────────────────────────────────── */
+.aqi-badge{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:20px;color:#fff;font-size:12px;font-weight:bold;}
+
+/* ── AQI row inside status box ───────────────────────────────────────────── */
+.aqi-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid #e0e0e0;}
+.aqi-row-label{font-size:12px;font-weight:bold;color:#888;text-transform:uppercase;letter-spacing:1px;}
+.aqi-badge{display:inline-block;padding:4px 12px;border-radius:20px;color:#fff;font-size:13px;font-weight:bold;background:#ccc;}

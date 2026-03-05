@@ -179,6 +179,26 @@ function gasDesc(g) {
   return 'Dangerous air quality. Ventilate immediately.';
 }
 
+function aqiColor(aqi) {
+  if (aqi < 0)   return '#aaa';
+  if (aqi <= 50)  return '#2ecc71';
+  if (aqi <= 100) return '#f39c12';
+  if (aqi <= 150) return '#e67e22';
+  if (aqi <= 200) return '#e74c3c';
+  if (aqi <= 300) return '#8e44ad';
+  return '#7f0000';
+}
+
+function aqiText(aqi) {
+  if (aqi < 0)   return null;
+  if (aqi <= 50)  return 'Good';
+  if (aqi <= 100) return 'Moderate';
+  if (aqi <= 150) return 'Unhealthy for Some';
+  if (aqi <= 200) return 'Unhealthy';
+  if (aqi <= 300) return 'Very Unhealthy';
+  return 'Hazardous';
+}
+
 // ── Charts ─────────────────────────────────────────────────────────────────────
 var chartOpts = { responsive: true, maintainAspectRatio: false, animation: false };
 
@@ -235,7 +255,18 @@ function updateData() {
     document.getElementById('humLabel').innerHTML  = humLabel(data.humidity);
     document.getElementById('humDesc').innerHTML   = humDesc(data.humidity);
     document.getElementById('gasLabel').innerHTML  = gasLabel(gas);
-    document.getElementById('gasDesc').innerHTML   = gasDesc(gas);
+
+    // Gas desc + indoor AQI badge
+    var aqi = data.aqi || -1;
+    document.getElementById('gasDesc').innerHTML = gasDesc(gas);
+    var badge = document.getElementById('indoorAqiBadge');
+    if (aqi >= 0) {
+      badge.textContent       = 'AQI ' + aqi + ' — ' + aqiText(aqi);
+      badge.style.background  = aqiColor(aqi);
+    } else {
+      badge.textContent      = '--';
+      badge.style.background = '#ccc';
+    }
 
     updateMinMaxDisplay(data);
 

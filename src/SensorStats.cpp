@@ -7,6 +7,8 @@ static float _minTemp =  FLT_MAX;
 static float _maxTemp = -FLT_MAX;
 static float _minHum  =  FLT_MAX;
 static float _maxHum  = -FLT_MAX;
+static float _minGas  =  FLT_MAX;
+static float _maxGas  = -FLT_MAX;
 
 static int _lastResetDay = -1; // day-of-month when we last reset
 
@@ -23,10 +25,11 @@ static void resetStats() {
     _maxTemp = -FLT_MAX;
     _minHum  =  FLT_MAX;
     _maxHum  = -FLT_MAX;
+    _minGas  =  FLT_MAX;
+    _maxGas  = -FLT_MAX;
 }
 
-void statsUpdate(float temp, float hum) {
-    // -999 is the sentinel error value from SensorReader — ignore each independently
+void statsUpdate(float temp, float hum, float gas) {
     if (temp != -999.0f) {
         if (temp < _minTemp) _minTemp = temp;
         if (temp > _maxTemp) _maxTemp = temp;
@@ -35,12 +38,18 @@ void statsUpdate(float temp, float hum) {
         if (hum < _minHum) _minHum = hum;
         if (hum > _maxHum) _maxHum = hum;
     }
+    if (gas != -999.0f && gas > 0) {
+        if (gas < _minGas) _minGas = gas;
+        if (gas > _maxGas) _maxGas = gas;
+    }
 }
 
 float statsMinTemp() { return _minTemp ==  FLT_MAX ? -1 : _minTemp; }
 float statsMaxTemp() { return _maxTemp == -FLT_MAX ? -1 : _maxTemp; }
 float statsMinHum()  { return _minHum  ==  FLT_MAX ? -1 : _minHum;  }
 float statsMaxHum()  { return _maxHum  == -FLT_MAX ? -1 : _maxHum;  }
+float statsMinGas()  { return _minGas  ==  FLT_MAX ? -1 : _minGas;  }
+float statsMaxGas()  { return _maxGas  == -FLT_MAX ? -1 : _maxGas;  }
 
 void statsCheckMidnightReset() {
     struct tm timeinfo;

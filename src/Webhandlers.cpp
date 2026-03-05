@@ -1,6 +1,7 @@
 #include "WebHandlers.h"
 #include "SensorReader.h"
 #include "SensorStats.h"
+#include "AqiConverter.h"
 #include <SPIFFS.h>
 
 static WebServer* _server = nullptr;
@@ -30,22 +31,28 @@ static void handleJs() {
 static void handleData() {
     float temp = readTemperature();
     float hum  = readHumidity();
+    float gas  = -999.0f; // replace with readGas() when MQ-135 is connected
 
     bool ready = (temp != -999.0f && hum != -999.0f);
 
-    if (ready) statsUpdate(temp, hum);
+    if (ready) statsUpdate(temp, hum, gas);
 
     float tDisplay = ready ? temp : 0.0f;
     float hDisplay = ready ? hum  : 0.0f;
+    int   aqi      = ppmToAqi(gas > 0 ? gas : 0); // -1 when sensor not connected
 
     String json = "{";
     json += "\"ready\":"        + String(ready ? "true" : "false") + ",";
     json += "\"temperature\":"  + String(tDisplay, 1) + ",";
     json += "\"humidity\":"     + String(hDisplay, 1) + ",";
+    json += "\"gas\":"          + String(gas > 0 ? gas : 0, 1) + ",";
+    json += "\"aqi\":"          + String(aqi) + ",";
     json += "\"minTemp\":"      + String(statsMinTemp(), 1) + ",";
     json += "\"maxTemp\":"      + String(statsMaxTemp(), 1) + ",";
     json += "\"minHum\":"       + String(statsMinHum(),  1) + ",";
-    json += "\"maxHum\":"       + String(statsMaxHum(),  1);
+    json += "\"maxHum\":"       + String(statsMaxHum(),  1) + ",";
+    json += "\"minGas\":"       + String(statsMinGas(),  1) + ",";
+    json += "\"maxGas\":"       + String(statsMaxGas(),  1);
     json += "}";
 
     _server->send(200, "application/json", json);
