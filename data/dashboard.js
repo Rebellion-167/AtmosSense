@@ -24,12 +24,22 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
   var startAngle = Math.PI * 0.75;  // bottom-left
   var endAngle   = Math.PI * 2.25;  // bottom-right
   var totalArc   = endAngle - startAngle;
+  var arcWidth   = r * 0.18;
 
-  // ── Coloured sector arcs ──────────────────────────────────────────────────
-  var arcWidth = r * 0.18;
+  // ── Background track ─────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle);
+  ctx.strokeStyle = '#e0e0e0';
+  ctx.lineWidth   = arcWidth + 4;
+  ctx.lineCap     = 'butt';
+  ctx.stroke();
+
+  // ── Coloured sector arcs with small gaps between them ────────────────────
+  var gapAngle = 0.018; // radians gap between sectors
   sectors.forEach(function(s) {
-    var aStart = startAngle + ((s.lo - min) / (max - min)) * totalArc;
-    var aEnd   = startAngle + ((s.hi - min) / (max - min)) * totalArc;
+    var aStart = startAngle + ((s.lo - min) / (max - min)) * totalArc + gapAngle / 2;
+    var aEnd   = startAngle + ((s.hi - min) / (max - min)) * totalArc - gapAngle / 2;
+    if (aEnd <= aStart) return;
     ctx.beginPath();
     ctx.arc(cx, cy, r, aStart, aEnd);
     ctx.strokeStyle = s.color;
@@ -37,13 +47,6 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
     ctx.lineCap     = 'butt';
     ctx.stroke();
   });
-
-  // ── Inner track (decorative ring) ─────────────────────────────────────────
-  ctx.beginPath();
-  ctx.arc(cx, cy, r - arcWidth * 0.75, startAngle, endAngle);
-  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-  ctx.lineWidth   = 2;
-  ctx.stroke();
 
   // ── Needle ────────────────────────────────────────────────────────────────
   var clampedVal  = Math.min(Math.max(value, min), max);
@@ -236,33 +239,45 @@ function updateData() {
     var time = new Date().toLocaleTimeString();
     var gas  = data.gas || 0;
 
-    // Show warmup banner until sensor is ready
+    // Show warmup banner until DHT is ready
     var banner = document.getElementById('warmupBanner');
     if (!data.ready) {
       banner.style.display = 'flex';
-      return; // don't update gauges with invalid data
+      return;
     }
     banner.style.display = 'none';
 
-    // Redraw canvas gauges
-    drawGauge('tempGaugeCanvas', data.temperature, 0,   50,   tempSectors, '\u00b0C');
-    drawGauge('humGaugeCanvas',  data.humidity,    0,   100,  humSectors,  '%');
-    drawGauge('gasGaugeCanvas',  gas,              0,   2000, gasSectors,  'ppm');
+    // Show/hide sensor-not-detected overlays per sensor
+    var dhtOk = data.dhtConnected !== false;
+    var gasOk = data.gasConnected === true;
+    document.getElementById('tempOverlay').classList.toggle('visible', !dhtOk);
+    document.getElementById('humOverlay').classList.toggle('visible',  !dhtOk);
+    document.getElementById('gasOverlay').classList.toggle('visible',  !gasOk);
 
-    // Status labels
-    document.getElementById('tempLabel').innerHTML = tempLabel(data.temperature);
-    document.getElementById('tempDesc').innerHTML  = tempDesc(data.temperature);
-    document.getElementById('humLabel').innerHTML  = humLabel(data.humidity);
-    document.getElementById('humDesc').innerHTML   = humDesc(data.humidity);
-    document.getElementById('gasLabel').innerHTML  = gasLabel(gas);
+    // DHT gauges and labels — only when connected
+    if (dhtOk) {
+      drawGauge('tempGaugeCanvas', data.temperature, 0, 50,  tempSectors, '\u00b0C');
+      drawGauge('humGaugeCanvas',  data.humidity,    0, 100, humSectors,  '%');
+      document.getElementById('tempLabel').innerHTML = tempLabel(data.temperature);
+      document.getElementById('tempDesc').innerHTML  = tempDesc(data.temperature);
+      document.getElementById('humLabel').innerHTML  = humLabel(data.humidity);
+      document.getElementById('humDesc').innerHTML   = humDesc(data.humidity);
+    }
 
-    // Gas desc + indoor AQI badge
-    var aqi = data.aqi || -1;
-    document.getElementById('gasDesc').innerHTML = gasDesc(gas);
+    // Gas gauge, labels, AQI badge
+    if (gasOk) {
+      drawGauge('gasGaugeCanvas', gas, 0, 2000, gasSectors, 'ppm');
+      document.getElementById('gasLabel').innerHTML = gasLabel(gas);
+      document.getElementById('gasDesc').innerHTML  = gasDesc(gas);
+    } else {
+      document.getElementById('gasLabel').innerHTML = '&#128268; Sensor not connected';
+      document.getElementById('gasDesc').innerHTML  = gasDesc(0);
+    }
+    var aqi   = data.aqi || -1;
     var badge = document.getElementById('indoorAqiBadge');
-    if (aqi >= 0) {
-      badge.textContent       = 'AQI ' + aqi + ' — ' + aqiText(aqi);
-      badge.style.background  = aqiColor(aqi);
+    if (aqi >= 0 && gasOk) {
+      badge.textContent      = 'AQI ' + aqi + ' — ' + aqiText(aqi);
+      badge.style.background = aqiColor(aqi);
     } else {
       badge.textContent      = '--';
       badge.style.background = '#ccc';
@@ -270,13 +285,13 @@ function updateData() {
 
     updateMinMaxDisplay(data);
 
-    // Push to charts — shared labels array
+    // Only push valid readings to charts
     tempChart.data.labels.push(time);
-    tempChart.data.datasets[0].data.push(data.temperature);
+    tempChart.data.datasets[0].data.push(dhtOk ? data.temperature : null);
     humChart.data.labels.push(time);
-    humChart.data.datasets[0].data.push(data.humidity);
+    humChart.data.datasets[0].data.push(dhtOk ? data.humidity : null);
     gasChart.data.labels.push(time);
-    gasChart.data.datasets[0].data.push(gas);
+    gasChart.data.datasets[0].data.push(gasOk ? gas : null);
 
     if (tempChart.data.labels.length > 20) {
       tempChart.data.labels.shift(); tempChart.data.datasets[0].data.shift();
@@ -284,7 +299,7 @@ function updateData() {
       gasChart.data.labels.shift();  gasChart.data.datasets[0].data.shift();
     }
 
-    tempChart.update('none'); // 'none' skips Chart.js animation entirely
+    tempChart.update('none');
     humChart.update('none');
     gasChart.update('none');
   });

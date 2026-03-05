@@ -1,4 +1,4 @@
-#include "WebHandlers.h"
+#include "Webhandlers.h"
 #include "SensorReader.h"
 #include "SensorStats.h"
 #include "AqiConverter.h"
@@ -33,20 +33,20 @@ static void handleData() {
     float hum  = readHumidity();
     float gas  = -999.0f; // replace with readGas() when MQ-135 is connected
 
-    bool ready = (temp != -999.0f && hum != -999.0f);
+    bool warmedUp  = sensorWarmedUp();               // false only during boot warmup
+    bool dhtReady  = (temp != -999.0f && hum != -999.0f); // false if unplugged at any time
+    bool gasReady  = (gas  != -999.0f && gas > 0);
 
-    if (ready) statsUpdate(temp, hum, gas);
-
-    float tDisplay = ready ? temp : 0.0f;
-    float hDisplay = ready ? hum  : 0.0f;
-    int   aqi      = ppmToAqi(gas > 0 ? gas : 0); // -1 when sensor not connected
+    if (dhtReady) statsUpdate(temp, hum, gas);
 
     String json = "{";
-    json += "\"ready\":"        + String(ready ? "true" : "false") + ",";
-    json += "\"temperature\":"  + String(tDisplay, 1) + ",";
-    json += "\"humidity\":"     + String(hDisplay, 1) + ",";
-    json += "\"gas\":"          + String(gas > 0 ? gas : 0, 1) + ",";
-    json += "\"aqi\":"          + String(aqi) + ",";
+    json += "\"ready\":"        + String(warmedUp  ? "true" : "false") + ",";
+    json += "\"dhtConnected\":" + String(dhtReady  ? "true" : "false") + ",";
+    json += "\"gasConnected\":" + String(gasReady  ? "true" : "false") + ",";
+    json += "\"temperature\":"  + String(dhtReady ? temp : 0.0f, 1) + ",";
+    json += "\"humidity\":"     + String(dhtReady ? hum  : 0.0f, 1) + ",";
+    json += "\"gas\":"          + String(gasReady ? gas  : 0.0f, 1) + ",";
+    json += "\"aqi\":"          + String(ppmToAqi(gasReady ? gas : 0)) + ",";
     json += "\"minTemp\":"      + String(statsMinTemp(), 1) + ",";
     json += "\"maxTemp\":"      + String(statsMaxTemp(), 1) + ",";
     json += "\"minHum\":"       + String(statsMinHum(),  1) + ",";

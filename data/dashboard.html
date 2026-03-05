@@ -64,6 +64,7 @@
     <!-- Row 1: Temperature -->
     <div class="gauge-card">
       <div class="card-title">&#127777; Indoor Temperature</div>
+      <div class="sensor-overlay" id="tempOverlay">&#128268; Sensor not detected</div>
       <canvas id="tempGaugeCanvas" class="gauge" width="300" height="220"></canvas>
       <div class="status-box">
         <div class="status-label" id="tempLabel">--</div>
@@ -94,6 +95,7 @@
     <!-- Row 2: Humidity -->
     <div class="gauge-card">
       <div class="card-title">&#128167; Indoor Humidity</div>
+      <div class="sensor-overlay" id="humOverlay">&#128268; Sensor not detected</div>
       <canvas id="humGaugeCanvas" class="gauge" width="300" height="220"></canvas>
       <div class="status-box">
         <div class="status-label" id="humLabel">--</div>
@@ -124,6 +126,7 @@
     <!-- Row 3: Air Quality (MQ-135) -->
     <div class="gauge-card">
       <div class="card-title">&#127807; Air Quality (ppm)</div>
+      <div class="sensor-overlay" id="gasOverlay">&#128268; Sensor not detected</div>
       <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
       <div class="status-box">
         <div class="status-label" id="gasLabel">&#128268; Sensor not connected</div>

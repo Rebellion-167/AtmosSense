@@ -42,3 +42,6 @@ float readHumidity() {
     float h = dht.readHumidity();
     return isnan(h) ? -999.0f : h;
 }
+
+// True once warmup is complete — stays true even if sensor is later unplugged
+bool sensorWarmedUp() { return _ready; }

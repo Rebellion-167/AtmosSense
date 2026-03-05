@@ -10,4 +10,7 @@ float readTemperature();
 // Read relative humidity in %; returns -999.0 if sensor not ready or read failed
 float readHumidity();
 
+// True once warmup is complete — stays true even if sensor is later unplugged
+bool sensorWarmedUp();
+
 #endif // SENSOR_READER_H
