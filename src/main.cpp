@@ -4,20 +4,37 @@
 #include <SPIFFS.h>
 #include <time.h>
 
-#include "Secrets.h"
 #include "SensorReader.h"
 #include "SensorStats.h"
 #include "WebHandlers.h"
 #include "AlertManager.h"
+#include "WiFiManager.h"
 
 #define NTP_SERVER "pool.ntp.org"
 
+// GPIO0 (BOOT button) held low for 3s on boot clears saved WiFi credentials
+#define RESET_PIN 0
+
 WebServer server(80);
+
+static void checkResetButton() {
+    pinMode(RESET_PIN, INPUT_PULLUP);
+    if (digitalRead(RESET_PIN) == LOW) {
+        Serial.println("[Reset] BOOT button held — waiting 3s to confirm WiFi reset...");
+        delay(3000);
+        if (digitalRead(RESET_PIN) == LOW) {
+            wifiClearCredentials();
+            Serial.println("[Reset] WiFi credentials cleared. Restarting...");
+            delay(500);
+            ESP.restart();
+        }
+    }
+}
 
 void setup() {
     Serial.begin(115200);
 
-    // LEDs first so self-test runs immediately
+    // LEDs self-test first
     alertBegin();
     digitalWrite(LED_RED,    HIGH); delay(300); digitalWrite(LED_RED,    LOW);
     digitalWrite(LED_YELLOW, HIGH); delay(300); digitalWrite(LED_YELLOW, LOW);
@@ -29,17 +46,14 @@ void setup() {
     }
     Serial.println("SPIFFS mounted");
 
-    // Non-blocking — warmup happens in loop() via sensorTick()
+    // Check if user is holding BOOT to reset WiFi
+    checkResetButton();
+
+    // Non-blocking sensor warmup
     sensorBegin();
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.print("Connecting to WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nConnected!");
-    Serial.println(WiFi.localIP());
+    // Connect to WiFi — shows AP portal if no credentials saved
+    wifiManagerBegin();
 
     configTime(0, 0, NTP_SERVER);
 
@@ -51,7 +65,7 @@ void setup() {
 }
 
 void loop() {
-    sensorTick();              // non-blocking DHT warmup
+    sensorTick();
     server.handleClient();
     statsCheckMidnightReset();
 }

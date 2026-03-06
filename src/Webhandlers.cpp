@@ -124,4 +124,10 @@ void registerRoutes(WebServer& server) {
     server.on("/climate",       HTTP_POST, handleClimate);
     server.on("/timezone",      HTTP_POST, handleTimezone);
     server.on("/favicon.ico",   [&server]() { server.send(204); });
+    server.onNotFound([&server]() {
+        Serial.printf("[404] %s %s\n",
+            server.method() == HTTP_GET ? "GET" : "POST",
+            server.uri().c_str());
+        server.send(404, "text/plain", "Not found");
+    });
 }
