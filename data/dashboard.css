@@ -85,19 +85,27 @@ h2{text-align:center;margin-bottom:16px;color:#222;}
 
 /* ── Alert container ─────────────────────────────────────────────────────── */
 .alert-container{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:16px 20px;margin-bottom:18px;}
-.alert-container-title{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:12px;}
+.alert-container-title{font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:12px;}
 .param-alert-row{display:flex;gap:12px;}
-.param-alert-box{flex:1;border-radius:10px;padding:14px 10px;text-align:center;transition:background 0.35s,border-color 0.35s;border:2px solid transparent;}
 
-.param-alert-box.state-normal  {background:#d5f5e3;border-color:#27ae60;}
-.param-alert-box.state-warning {background:#fdebd0;border-color:#e67e22;}
-.param-alert-box.state-danger  {background:#fadbd8;border-color:#e74c3c;}
-.param-alert-box.state-unknown {background:#eaecee;border-color:#bdc3c7;}
+.param-alert-box{flex:1;border-radius:10px;padding:14px 16px;text-align:left;transition:border-color 0.35s,background 0.35s;border:1.5px solid #e0e0e0;background:#f8f9fa;display:flex;align-items:center;gap:12px;}
+.param-alert-box.state-normal  {border-left:4px solid #27ae60;background:#f8f9fa;}
+.param-alert-box.state-warning {border-left:4px solid #e67e22;background:#fffbf5;}
+.param-alert-box.state-danger  {border-left:4px solid #e74c3c;background:#fff8f8;}
+.param-alert-box.state-unknown {border-left:4px solid #bdc3c7;background:#f8f9fa;}
 
-.param-alert-icon{font-size:22px;margin-bottom:6px;}
-.param-alert-name{font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:6px;}
+.param-alert-icon{font-size:24px;flex-shrink:0;}
+.param-alert-text{display:flex;flex-direction:column;gap:2px;}
+.param-alert-name{font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#888;}
 .param-alert-status{font-size:14px;font-weight:bold;}
-.state-normal  .param-alert-status{color:#1a5e35;}
-.state-warning .param-alert-status{color:#784212;}
-.state-danger  .param-alert-status{color:#922b21;}
-.state-unknown .param-alert-status{color:#717d7e;}
+.state-normal  .param-alert-status{color:#1e8449;}
+.state-warning .param-alert-status{color:#a04000;}
+.state-danger  .param-alert-status{color:#c0392b;}
+.state-unknown .param-alert-status{color:#95a5a6;}
+
+/* ── Gauge value display ─────────────────────────────────────────────────── */
+.gauge-value{text-align:center;font-size:26px;font-weight:bold;color:#222;margin:4px 0 10px 0;letter-spacing:1px;}
+
+/* ── Change city button ───────────────────────────────────────────────────── */
+.change-city-btn{background:none;border:1.5px solid #d0d5dd;border-radius:6px;padding:3px 10px;font-size:12px;color:#555;cursor:pointer;font-family:Arial;transition:background 0.2s,border-color 0.2s;}
+.change-city-btn:hover{background:#f0f4ff;border-color:#4a90e2;color:#4a90e2;}

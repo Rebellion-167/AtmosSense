@@ -32,6 +32,8 @@
     <span id="clockCity">&#127759; --</span>
     <span class="location-bar-divider">|</span>
     <span id="clockTime">--:--:--</span>
+    <span class="location-bar-divider">|</span>
+    <button class="change-city-btn" onclick="showModal()">&#9998; Change City</button>
   </div>
 
   <!-- Outside weather widget -->
@@ -60,25 +62,31 @@
 
   <!-- Parameter alert boxes -->
   <div class="alert-container">
-    <div class="alert-container-title">&#9888; Indoor Air Status</div>
+    <div class="alert-container-title">Indoor Air Status</div>
     <div class="param-alert-row">
 
       <div class="param-alert-box state-unknown" id="tempAlertBox">
         <div class="param-alert-icon">&#127777;</div>
-        <div class="param-alert-name">Temperature</div>
-        <div class="param-alert-status" id="tempAlertStatus">--</div>
+        <div class="param-alert-text">
+          <div class="param-alert-name">Temperature</div>
+          <div class="param-alert-status" id="tempAlertStatus">--</div>
+        </div>
       </div>
 
       <div class="param-alert-box state-unknown" id="humAlertBox">
         <div class="param-alert-icon">&#128167;</div>
-        <div class="param-alert-name">Humidity</div>
-        <div class="param-alert-status" id="humAlertStatus">--</div>
+        <div class="param-alert-text">
+          <div class="param-alert-name">Humidity</div>
+          <div class="param-alert-status" id="humAlertStatus">--</div>
+        </div>
       </div>
 
       <div class="param-alert-box state-unknown" id="gasAlertBox">
         <div class="param-alert-icon">&#127807;</div>
-        <div class="param-alert-name">Air Quality</div>
-        <div class="param-alert-status" id="gasAlertStatus">--</div>
+        <div class="param-alert-text">
+          <div class="param-alert-name">Air Quality</div>
+          <div class="param-alert-status" id="gasAlertStatus">--</div>
+        </div>
       </div>
 
     </div>
@@ -92,6 +100,7 @@
       <div class="card-title">&#127777; Indoor Temperature</div>
       <div class="sensor-overlay" id="tempOverlay">&#128268; Sensor not detected</div>
       <canvas id="tempGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+      <div class="gauge-value" id="tempGaugeValue">--</div>
       <div class="status-box">
         <div class="status-label" id="tempLabel">--</div>
         <div class="status-desc"  id="tempDesc">Waiting for data...</div>
@@ -123,6 +132,7 @@
       <div class="card-title">&#128167; Indoor Humidity</div>
       <div class="sensor-overlay" id="humOverlay">&#128268; Sensor not detected</div>
       <canvas id="humGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+      <div class="gauge-value" id="humGaugeValue">--</div>
       <div class="status-box">
         <div class="status-label" id="humLabel">--</div>
         <div class="status-desc"  id="humDesc">Waiting for data...</div>
@@ -154,6 +164,7 @@
       <div class="card-title">&#127807; Air Quality (ppm)</div>
       <div class="sensor-overlay" id="gasOverlay">&#128268; Sensor not detected</div>
       <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+      <div class="gauge-value" id="gasGaugeValue">--</div>
       <div class="status-box">
         <div class="status-label" id="gasLabel">&#128268; Sensor not connected</div>
         <div class="status-desc"  id="gasDesc">MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.</div>

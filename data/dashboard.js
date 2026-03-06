@@ -1,18 +1,20 @@
 // ── Canvas Gauge drawing ───────────────────────────────────────────────────────
-// Replaces JustGage/Raphael entirely — no SVG overhead, pure Canvas 2D
+var _gaugeCache = {}; // cache canvas dimensions per canvasId
 
 function drawGauge(canvasId, value, min, max, sectors, unit) {
   var canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
-  // Match canvas internal resolution to its CSS display size
-  var rect = canvas.getBoundingClientRect();
-  canvas.width  = rect.width  || 300;
-  canvas.height = rect.height || 200;
-
-  var ctx = canvas.getContext('2d');
-  var w   = canvas.width;
-  var h   = canvas.height;
+  // Only measure and set dimensions once — avoids layout reflow every poll
+  if (!_gaugeCache[canvasId]) {
+    var rect = canvas.getBoundingClientRect();
+    canvas.width  = rect.width  || 300;
+    canvas.height = rect.height || 200;
+    _gaugeCache[canvasId] = { w: canvas.width, h: canvas.height, ctx: canvas.getContext('2d') };
+  }
+  var w   = _gaugeCache[canvasId].w;
+  var h   = _gaugeCache[canvasId].h;
+  var ctx = _gaugeCache[canvasId].ctx;
 
   // Centre horizontally, sit in the lower 75% vertically so arc has headroom
   var cx = w / 2;
@@ -72,14 +74,6 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
   ctx.fillStyle = '#444';
   ctx.fill();
 
-  // ── Value text ────────────────────────────────────────────────────────────
-  var fontSize = Math.round(r * 0.28);
-  ctx.fillStyle   = '#222';
-  ctx.font        = 'bold ' + fontSize + 'px Arial';
-  ctx.textAlign   = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(value != null ? value.toFixed(1) + unit : '--', cx, cy - r * 0.48);
-
   // ── Min / Max tick labels ─────────────────────────────────────────────────
   var labelFont = Math.round(r * 0.16) + 'px Arial';
   ctx.fillStyle  = '#999';
@@ -97,6 +91,10 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
   ctx.fillText(min, minX, minY);
   ctx.textAlign = 'left';
   ctx.fillText(max, maxX, maxY);
+
+  // ── HTML value display — shown below canvas, above status box ─────────────
+  var valEl = document.getElementById(canvasId.replace('Canvas', 'Value'));
+  if (valEl) valEl.textContent = value != null ? value.toFixed(1) + ' ' + unit : '--';
 }
 
 // Sector definitions
@@ -424,14 +422,14 @@ function submitCity() {
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
           weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 900000);
-          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 5000); } // 5s poll
+          if (!dataInterval) { setTimeout(function(){ updateData(); dataInterval = setInterval(updateData, 5000); }, 300); } // 5s poll
         })
         .catch(function() {
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
           weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 900000);
-          if (!dataInterval) { updateData(); dataInterval = setInterval(updateData, 5000); }
+          if (!dataInterval) { setTimeout(function(){ updateData(); dataInterval = setInterval(updateData, 5000); }, 300); }
         });
     })
     .catch(function() {
