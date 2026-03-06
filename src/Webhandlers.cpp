@@ -64,6 +64,9 @@ static void handleData() {
         "\"aqi\":%d,"
         "\"alertLevel\":%d,"
         "\"alertReason\":\"%s\","
+        "\"alertTempState\":%d,"
+        "\"alertHumState\":%d,"
+        "\"alertGasState\":%d,"
         "\"minTemp\":%.1f,"
         "\"maxTemp\":%.1f,"
         "\"minHum\":%.1f,"
@@ -76,6 +79,7 @@ static void handleData() {
         gasReady ? "true" : "false",
         tDisplay, hDisplay, gDisplay,
         aqi, alertLvl, reason,
+        alertGetTempState(), alertGetHumState(), alertGetGasState(),
         statsMinTemp(), statsMaxTemp(),
         statsMinHum(),  statsMaxHum(),
         statsMinGas(),  statsMaxGas()

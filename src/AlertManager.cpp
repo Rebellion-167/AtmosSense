@@ -52,6 +52,11 @@ void alertSetClimate(float meanTemp, float meanHum) {
     Serial.printf("[Alert] Temp danger : %.1f – %.1f deg C\n", _th.tempDangerLo, _th.tempDangerHi);
 }
 
+// Per-sensor states exposed for JSON — 0=safe, 1=warning, 2=danger, -1=not connected
+static int _tempState = -1;
+static int _humState  = -1;
+static int _gasState  = -1;
+
 AlertLevel alertUpdate(float temp, float hum, float gas) {
     // ── Evaluate each sensor independently ───────────────────────────────────
     // Result per sensor: -1 = not connected, 0 = safe, 1 = unsafe, 2 = danger
@@ -83,6 +88,11 @@ AlertLevel alertUpdate(float temp, float hum, float gas) {
         else
             gasState = 0;
     }
+
+    // Store for external access
+    _tempState = tempState;
+    _humState  = humState;
+    _gasState  = gasState;
 
     // ── Count connected sensors and how many are in each state ────────────────
     int connected = 0, safe = 0, unsafe = 0, danger = 0;
@@ -147,5 +157,8 @@ AlertLevel alertUpdate(float temp, float hum, float gas) {
     return _level;
 }
 
-AlertLevel  alertGetLevel()  { return _level;  }
-const char* alertGetReason() { return _reason; }
+AlertLevel  alertGetLevel()    { return _level;     }
+const char* alertGetReason()   { return _reason;    }
+int         alertGetTempState(){ return _tempState; }
+int         alertGetHumState() { return _humState;  }
+int         alertGetGasState() { return _gasState;  }

@@ -27,5 +27,8 @@ AlertLevel alertUpdate(float temp, float hum, float gas);
 
 AlertLevel  alertGetLevel();
 const char* alertGetReason();
+int         alertGetTempState(); // 0=safe, 1=warning, 2=danger, -1=not connected
+int         alertGetHumState();
+int         alertGetGasState();
 
 #endif // ALERT_MANAGER_H

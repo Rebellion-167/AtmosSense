@@ -231,6 +231,44 @@ function updateMinMaxDisplay(data) {
   document.getElementById('maxGas').textContent  = data.maxGas  > 0 ? Math.round(data.maxGas) : '--';
 }
 
+// ── Per-parameter alert boxes ──────────────────────────────────────────────────
+function updateParamAlerts(data) {
+  function setBox(boxId, statusId, state, statusText) {
+    var box = document.getElementById(boxId);
+    var st  = document.getElementById(statusId);
+    if (!box || !st) return;
+    box.className   = 'param-alert-box state-' + state;
+    st.textContent  = statusText;
+  }
+
+  // Temperature
+  if (!data.dhtConnected) {
+    setBox('tempAlertBox', 'tempAlertStatus', 'unknown', 'No Sensor');
+  } else {
+    if      (data.alertTempState === 2) setBox('tempAlertBox', 'tempAlertStatus', 'danger',  'Danger');
+    else if (data.alertTempState === 1) setBox('tempAlertBox', 'tempAlertStatus', 'warning', 'Out of Range');
+    else                                setBox('tempAlertBox', 'tempAlertStatus', 'normal',  'Normal');
+  }
+
+  // Humidity
+  if (!data.dhtConnected) {
+    setBox('humAlertBox', 'humAlertStatus', 'unknown', 'No Sensor');
+  } else {
+    if      (data.alertHumState === 2) setBox('humAlertBox', 'humAlertStatus', 'danger',  'Danger');
+    else if (data.alertHumState === 1) setBox('humAlertBox', 'humAlertStatus', 'warning', 'Out of Range');
+    else                               setBox('humAlertBox', 'humAlertStatus', 'normal',  'Normal');
+  }
+
+  // Gas
+  if (!data.gasConnected) {
+    setBox('gasAlertBox', 'gasAlertStatus', 'unknown', 'No Sensor');
+  } else {
+    if      (data.alertGasState === 2) setBox('gasAlertBox', 'gasAlertStatus', 'danger',  'Danger');
+    else if (data.alertGasState === 1) setBox('gasAlertBox', 'gasAlertStatus', 'warning', 'Out of Range');
+    else                               setBox('gasAlertBox', 'gasAlertStatus', 'normal',  'Normal');
+  }
+}
+
 // ── Sensor polling ─────────────────────────────────────────────────────────────
 var dataInterval = null;
 
@@ -250,21 +288,8 @@ function updateData() {
     banner.style.display = 'none';
 
     // ── Alert bar ─────────────────────────────────────────────────────────────
-    var alertBar = document.getElementById('alertBar');
-    var alertMsg = document.getElementById('alertMsg');
-    if (alertBar && alertMsg) {
-      alertBar.className = 'alert-bar';
-      if (data.alertLevel === 2) {
-        alertBar.classList.add('alert-danger');
-        alertMsg.textContent = 'DANGER: ' + (data.alertReason || 'Danger');
-      } else if (data.alertLevel === 1) {
-        alertBar.classList.add('alert-warn');
-        alertMsg.textContent = 'WARNING: ' + (data.alertReason || 'Warning');
-      } else {
-        alertBar.classList.add('alert-none');
-        alertMsg.textContent = 'All parameters normal';
-      }
-    }
+    // Per-parameter alert boxes
+    updateParamAlerts(data);
 
     // Show/hide sensor-not-detected overlays per sensor
     var dhtOk = data.dhtConnected !== false;
