@@ -1,34 +1,42 @@
 #include "SensorReader.h"
 #include "DHT.h"
 
-#define DHTPIN   4
-#define DHTTYPE  DHT11
-#define WARMUP_READINGS 5      // discard this many readings on startup
-#define WARMUP_DELAY_MS 2000   // DHT11 minimum sampling period is 2s
+#define DHTPIN          4
+#define DHTTYPE         DHT11
+#define WARMUP_READINGS 5       // discard this many valid readings on startup
+#define WARMUP_DELAY_MS 2000    // DHT11 minimum sampling period
 
 static DHT  dht(DHTPIN, DHTTYPE);
 static bool _ready           = false;
 static int  _warmupRemaining = WARMUP_READINGS;
+static unsigned long _lastReadMs = 0;
 
 void sensorBegin() {
     dht.begin();
-    // Allow the sensor to power up before the first read attempt
-    delay(WARMUP_DELAY_MS);
-    Serial.println("DHT11 warming up...");
+    Serial.println("DHT11 initialised. Warming up in background...");
+}
 
-    // Flush the first WARMUP_READINGS readings
-    while (_warmupRemaining > 0) {
-        float t = dht.readTemperature();
-        float h = dht.readHumidity();
-        if (!isnan(t) && !isnan(h)) {
-            _warmupRemaining--;
-            Serial.printf("Warmup reading discarded (%d left): %.1f°C %.1f%%\n",
-                          _warmupRemaining, t, h);
+// Called from loop() — non-blocking warmup, returns true once ready
+bool sensorTick() {
+    if (_ready) return true;
+
+    unsigned long now = millis();
+    if (now - _lastReadMs < WARMUP_DELAY_MS) return false;
+    _lastReadMs = now;
+
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
+
+    if (!isnan(t) && !isnan(h)) {
+        _warmupRemaining--;
+        Serial.printf("DHT11 warmup discarded (%d left): %.1f deg C %.1f%%\n",
+                      _warmupRemaining, t, h);
+        if (_warmupRemaining <= 0) {
+            _ready = true;
+            Serial.println("DHT11 ready.");
         }
-        delay(WARMUP_DELAY_MS); // DHT11 needs 2s between samples
     }
-    _ready = true;
-    Serial.println("DHT11 ready.");
+    return _ready;
 }
 
 float readTemperature() {
@@ -43,5 +51,4 @@ float readHumidity() {
     return isnan(h) ? -999.0f : h;
 }
 
-// True once warmup is complete — stays true even if sensor is later unplugged
 bool sensorWarmedUp() { return _ready; }

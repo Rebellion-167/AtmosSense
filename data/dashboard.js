@@ -101,19 +101,19 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
 
 // Sector definitions
 var tempSectors = [
-  { color: '#1a6faf', lo: 0,  hi: 10 },
-  { color: '#74b9e7', lo: 10, hi: 18 },
-  { color: '#2ecc71', lo: 18, hi: 24 },
-  { color: '#f39c12', lo: 24, hi: 28 },
-  { color: '#e67e22', lo: 28, hi: 35 },
-  { color: '#c0392b', lo: 35, hi: 50 }
+  { color: '#1a237e', lo: 0,  hi: 10 },  // Deep Blue    — Dangerously Cold
+  { color: '#4fc3f7', lo: 10, hi: 18 },  // Light Blue   — Cold
+  { color: '#2ecc71', lo: 18, hi: 24 },  // Green        — Comfortable
+  { color: '#f9e04b', lo: 24, hi: 28 },  // Yellow       — Warm
+  { color: '#e67e22', lo: 28, hi: 35 },  // Orange       — Hot
+  { color: '#c0392b', lo: 35, hi: 50 }   // Red          — Dangerously Hot
 ];
 var humSectors = [
-  { color: '#c0392b', lo: 0,  hi: 20  },
-  { color: '#e67e22', lo: 20, hi: 30  },
-  { color: '#2ecc71', lo: 30, hi: 60  },
-  { color: '#f39c12', lo: 60, hi: 70  },
-  { color: '#2980b9', lo: 70, hi: 100 }
+  { color: '#c0392b', lo: 0,  hi: 20  }, // Red          — Very Dry
+  { color: '#e67e22', lo: 20, hi: 30  }, // Orange       — Dry
+  { color: '#2ecc71', lo: 30, hi: 60  }, // Green        — Comfortable
+  { color: '#4fc3f7', lo: 60, hi: 70  }, // Light Blue   — Humid
+  { color: '#1a237e', lo: 70, hi: 100 }  // Dark Blue    — Very Humid
 ];
 var gasSectors = [
   { color: '#2ecc71', lo: 0,    hi: 400  },

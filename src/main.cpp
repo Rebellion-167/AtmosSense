@@ -10,12 +10,18 @@
 #include "WebHandlers.h"
 #include "AlertManager.h"
 
-#define NTP_SERVER     "pool.ntp.org"
+#define NTP_SERVER "pool.ntp.org"
 
 WebServer server(80);
 
 void setup() {
     Serial.begin(115200);
+
+    // LEDs first so self-test runs immediately
+    alertBegin();
+    digitalWrite(LED_RED,    HIGH); delay(300); digitalWrite(LED_RED,    LOW);
+    digitalWrite(LED_YELLOW, HIGH); delay(300); digitalWrite(LED_YELLOW, LOW);
+    digitalWrite(LED_GREEN,  HIGH); delay(300); digitalWrite(LED_GREEN,  LOW);
 
     if (!SPIFFS.begin(true)) {
         Serial.println("SPIFFS mount failed!");
@@ -23,16 +29,7 @@ void setup() {
     }
     Serial.println("SPIFFS mounted");
 
-    alertBegin();
-
-    // Brief LED self-test so you can verify wiring on every boot
-    digitalWrite(LED_RED,    HIGH); delay(300);
-    digitalWrite(LED_RED,    LOW);
-    digitalWrite(LED_YELLOW, HIGH); delay(300);
-    digitalWrite(LED_YELLOW, LOW);
-    digitalWrite(LED_GREEN,  HIGH); delay(300);
-    digitalWrite(LED_GREEN,  LOW);
-
+    // Non-blocking — warmup happens in loop() via sensorTick()
     sensorBegin();
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -44,8 +41,6 @@ void setup() {
     Serial.println("\nConnected!");
     Serial.println(WiFi.localIP());
 
-    // NTP server is configured but timezone offset is set later via /timezone
-    // when the user enters their city on the dashboard
     configTime(0, 0, NTP_SERVER);
 
     statsBegin();
@@ -56,6 +51,7 @@ void setup() {
 }
 
 void loop() {
+    sensorTick();              // non-blocking DHT warmup
     server.handleClient();
     statsCheckMidnightReset();
 }

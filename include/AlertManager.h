@@ -1,48 +1,31 @@
 #ifndef ALERT_MANAGER_H
 #define ALERT_MANAGER_H
 
-// LED pins — change these to match your wiring
 #define LED_GREEN  25
 #define LED_YELLOW 26
 #define LED_RED    27
 
 typedef enum {
-    ALERT_NONE    = 0,  // All parameters within normal range → Green
-    ALERT_WARNING = 1,  // One or more parameters anomalous   → Yellow
-    ALERT_DANGER  = 2   // One or more parameters in danger   → Red
+    ALERT_NONE    = 0,  // All sensors safe        → Green
+    ALERT_WARNING = 1,  // Any sensor out of range → Yellow
+    ALERT_DANGER  = 2   // All sensors in danger   → Red
 } AlertLevel;
 
-// Climate-based thresholds — set via alertSetClimate() when user enters city.
-// Until set, falls back to conservative universal defaults.
 struct ClimateThresholds {
-    // Temperature (°C)
-    float tempWarnLo;    // below this → warning
-    float tempWarnHi;    // above this → warning
-    float tempDangerLo;  // below this → danger
-    float tempDangerHi;  // above this → danger
-    // Humidity (%)
-    float humWarnLo;
-    float humWarnHi;
-    float humDangerLo;
-    float humDangerHi;
+    float tempSafeLo, tempSafeHi;     // within this → safe
+    float tempDangerLo, tempDangerHi; // outside this → danger
 };
 
-// Call once in setup()
 void alertBegin();
 
-// Update thresholds based on location climate normals received from dashboard.
-// meanTemp: monthly mean temperature for current month (°C)
-// meanHum:  monthly mean relative humidity for current month (%)
+// Call with 30-day mean temperature for the user's location.
+// Humidity and gas use fixed universal indoor thresholds.
 void alertSetClimate(float meanTemp, float meanHum);
 
-// Evaluate current readings and drive LEDs accordingly.
-// Pass -999 for any sensor that is not connected — it is ignored.
+// Evaluate readings and drive LEDs. Pass -999 for unconnected sensors.
 AlertLevel alertUpdate(float temp, float hum, float gas);
 
-// Returns the last computed alert level
-AlertLevel alertGetLevel();
-
-// Returns a human-readable description of what triggered the alert
+AlertLevel  alertGetLevel();
 const char* alertGetReason();
 
 #endif // ALERT_MANAGER_H

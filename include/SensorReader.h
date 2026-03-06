@@ -1,13 +1,16 @@
 #ifndef SENSOR_READER_H
 #define SENSOR_READER_H
 
-// Initialise the DHT sensor — blocks during warmup (~10s) to discard unstable readings
+// Initialise the DHT sensor — call once in setup(), returns immediately
 void sensorBegin();
 
-// Read temperature in °C; returns -999.0 if sensor not ready or read failed
+// Call every loop() — handles non-blocking warmup. Returns true once ready.
+bool sensorTick();
+
+// Read temperature in °C; returns -999.0 if not ready or read failed
 float readTemperature();
 
-// Read relative humidity in %; returns -999.0 if sensor not ready or read failed
+// Read relative humidity in %; returns -999.0 if not ready or read failed
 float readHumidity();
 
 // True once warmup is complete — stays true even if sensor is later unplugged
