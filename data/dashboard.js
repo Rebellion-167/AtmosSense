@@ -121,6 +121,7 @@ var gasSectors = [
 
 // ── Live clock (based on user's geolocation timezone, not browser local time) ──
 var _tzOffsetSeconds = null; // set when user submits city
+var _currentCity     = '';   // clean city name for OLED
 
 function getLocationTime() {
   if (_tzOffsetSeconds === null) return '--:--:--';
@@ -381,6 +382,7 @@ function submitCity() {
       var lat = parseFloat(results[0].lat);
       var lon = parseFloat(results[0].lon);
       var displayName = results[0].display_name.split(',').slice(0, 2).join(', ');
+      _currentCity = displayName;
       document.getElementById('clockCity').innerHTML = '&#127759; ' + displayName;
 
       document.getElementById('modalError').textContent = 'Syncing time...';
@@ -411,7 +413,7 @@ function submitCity() {
                 fetch('/climate', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                  body: 'meanTemp=' + meanTemp.toFixed(1) + '&meanHum=0'
+                  body: 'meanTemp=' + meanTemp.toFixed(1) + '&meanHum=0&city=' + encodeURIComponent(displayName)
                 }).catch(function() { console.warn('Could not send climate normals to ESP32'); });
                 console.log('30-day temp baseline: ' + meanTemp.toFixed(1) + 'C');
               }
@@ -458,8 +460,11 @@ function fetchOutsideWeather(lat, lon) {
       var air     = results[1];
 
       var el;
-      if ((el = document.getElementById('outsideTemp')))    el.textContent = weather.current.temperature_2m.toFixed(1);
-      if ((el = document.getElementById('outsideHum')))     el.textContent = weather.current.relative_humidity_2m;
+      var oTemp = weather.current.temperature_2m;
+      var oHum  = weather.current.relative_humidity_2m;
+
+      if ((el = document.getElementById('outsideTemp')))    el.textContent = oTemp.toFixed(1);
+      if ((el = document.getElementById('outsideHum')))     el.textContent = oHum;
 
       var aqi = air.current && air.current.us_aqi != null ? Math.round(air.current.us_aqi) : null;
       if (aqi !== null) {
@@ -473,6 +478,15 @@ function fetchOutsideWeather(lat, lon) {
 
       if ((el = document.getElementById('outsideUpdated'))) el.textContent = 'Updated: ' + new Date().toLocaleTimeString();
       if ((el = document.getElementById('weatherStatus')))  el.textContent = '';
+
+      // Push city + live outside weather to ESP32 for OLED display
+      fetch('/climate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'outsideTemp=' + oTemp.toFixed(1) +
+              '&outsideHum='  + Math.round(oHum) +
+              '&city='        + encodeURIComponent(_currentCity)
+      }).catch(function() { console.warn('Could not push weather to OLED'); });
     })
     .catch(function() {
       var el = document.getElementById('weatherStatus');

@@ -9,6 +9,7 @@
 #include "WebHandlers.h"
 #include "AlertManager.h"
 #include "WiFiManager.h"
+#include "OledDisplay.h"
 
 #define NTP_SERVER "pool.ntp.org"
 
@@ -52,8 +53,15 @@ void setup() {
     // Non-blocking sensor warmup
     sensorBegin();
 
+    // Init OLED early so status messages show during boot
+    oledBegin();
+
     // Connect to WiFi — shows AP portal if no credentials saved
+    oledStatus("Connecting...", "to WiFi");
     wifiManagerBegin();
+    oledStatus("WiFi OK", WiFi.localIP().toString().c_str());
+    delay(1500);
+    oledStatus("Sensor warming up", "please wait...");
 
     configTime(0, 0, NTP_SERVER);
 

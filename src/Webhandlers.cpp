@@ -3,7 +3,12 @@
 #include "SensorStats.h"
 #include "AqiConverter.h"
 #include "AlertManager.h"
+#include "OledDisplay.h"
 #include <SPIFFS.h>
+
+static char  _city[32]       = "Unknown";
+static float _outsideTemp    = NAN;
+static float _outsideHum     = NAN;
 
 static WebServer* _server = nullptr;
 
@@ -86,6 +91,11 @@ static void handleData() {
     );
 
     _server->send(200, "application/json", json);
+
+    // Refresh OLED with indoor readings on every poll
+    if (dhtReady) {
+        oledUpdate(_city, temp, hum);
+    }
 }
 
 static void handleTimezone() {
@@ -105,13 +115,30 @@ static void handleTimezone() {
 }
 
 static void handleClimate() {
-    if (!_server->hasArg("meanTemp") || !_server->hasArg("meanHum")) {
-        _server->send(400, "text/plain", "Missing meanTemp or meanHum");
-        return;
+    // meanTemp/meanHum — optional (only sent on initial city submit)
+    if (_server->hasArg("meanTemp") && _server->hasArg("meanHum")) {
+        float meanTemp = _server->arg("meanTemp").toFloat();
+        float meanHum  = _server->arg("meanHum").toFloat();
+        alertSetClimate(meanTemp, meanHum);
     }
-    float meanTemp = _server->arg("meanTemp").toFloat();
-    float meanHum  = _server->arg("meanHum").toFloat();
-    alertSetClimate(meanTemp, meanHum);
+
+    // city — store whenever provided
+    if (_server->hasArg("city") && _server->arg("city").length() > 0) {
+        strncpy(_city, _server->arg("city").c_str(), sizeof(_city) - 1);
+        _city[sizeof(_city) - 1] = '\0';
+        Serial.printf("[OLED] City updated: %s\n", _city);
+    }
+
+    if (_server->hasArg("outsideTemp")) _outsideTemp = _server->arg("outsideTemp").toFloat();
+    if (_server->hasArg("outsideHum"))  _outsideHum  = _server->arg("outsideHum").toFloat();
+
+    // Immediately refresh OLED with latest indoor readings + new city
+    float t = readTemperature();
+    float h = readHumidity();
+    if (t != -999.0f && h != -999.0f) {
+        oledUpdate(_city, t, h);
+    }
+
     _server->send(200, "text/plain", "OK");
 }
 
