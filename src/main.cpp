@@ -56,8 +56,8 @@ void setup() {
     // Init OLED early so status messages show during boot
     oledBegin();
 
-    // Connect to WiFi — shows AP portal if no credentials saved
-    oledStatus("Connecting...", "to WiFi");
+    // Connect to WiFi — if no credentials, WiFiManager starts AP portal
+    if (wifiHasCredentials()) oledStatus("Connecting...", "to WiFi");
     wifiManagerBegin();
     oledStatus("WiFi OK", WiFi.localIP().toString().c_str());
     delay(1500);

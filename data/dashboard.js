@@ -240,13 +240,14 @@ function updateParamAlerts(data) {
     st.textContent  = statusText;
   }
 
-  // Temperature
+  // Temperature — show heat index comfort label
   if (!data.dhtConnected) {
     setBox('tempAlertBox', 'tempAlertStatus', 'unknown', 'No Sensor');
   } else {
-    if      (data.alertTempState === 2) setBox('tempAlertBox', 'tempAlertStatus', 'danger',  'Danger');
-    else if (data.alertTempState === 1) setBox('tempAlertBox', 'tempAlertStatus', 'warning', 'Out of Range');
-    else                                setBox('tempAlertBox', 'tempAlertStatus', 'normal',  'Normal');
+    var label = data.comfortLabel || 'Normal';
+    if      (data.alertTempState === 2) setBox('tempAlertBox', 'tempAlertStatus', 'danger',  label);
+    else if (data.alertTempState === 1) setBox('tempAlertBox', 'tempAlertStatus', 'warning', label);
+    else                                setBox('tempAlertBox', 'tempAlertStatus', 'normal',  label);
   }
 
   // Humidity
@@ -395,30 +396,6 @@ function submitCity() {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'offset=' + _tzOffsetSeconds
           }).catch(function() { console.warn('Could not sync timezone to ESP32'); });
-
-          // Fetch 30-day rolling mean as local climate baseline for alert thresholds
-          fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat +
-                '&longitude=' + lon +
-                '&daily=temperature_2m_mean,relative_humidity_2m_mean' +
-                '&past_days=30&forecast_days=0&timezone=auto')
-            .then(r => r.json())
-            .then(function(climate) {
-              var temps = climate.daily && climate.daily.temperature_2m_mean;
-              var hums  = climate.daily && climate.daily.relative_humidity_2m_mean;
-              if (temps && hums && temps.length > 0) {
-                var validTemps = temps.filter(function(v) { return v !== null; });
-                var validHums  = hums.filter(function(v)  { return v !== null; });
-                var meanTemp = validTemps.reduce(function(a,b){return a+b;},0) / validTemps.length;
-                var meanHum  = validHums.reduce(function(a,b){return a+b;},0)  / validHums.length;
-                fetch('/climate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                  body: 'meanTemp=' + meanTemp.toFixed(1) + '&meanHum=0&city=' + encodeURIComponent(displayName)
-                }).catch(function() { console.warn('Could not send climate normals to ESP32'); });
-                console.log('30-day temp baseline: ' + meanTemp.toFixed(1) + 'C');
-              }
-            })
-            .catch(function() { console.warn('Could not fetch climate baseline'); });
 
           hideModal();
           fetchOutsideWeather(lat, lon);

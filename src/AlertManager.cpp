@@ -1,31 +1,16 @@
 #include "AlertManager.h"
+#include "HeatIndex.h"
 #include <Arduino.h>
 
-// ── Temperature offsets from 30-day location mean ────────────────────────────
-#define TEMP_SAFE_OFFSET   4.0f   // within ±4°C of mean → safe
-#define TEMP_DANGER_OFFSET 8.0f   // beyond ±8°C of mean → danger zone
+// Store feels-like for external access
+static float       _feelsLike    = -999.0f;
+static const char* _comfortLabel = "Unknown";
 
-// ── Indoor humidity — fixed comfort ranges (outdoor baseline not applicable) ──
-#define HUM_SAFE_LO    30.0f
-#define HUM_SAFE_HI    65.0f
-#define HUM_DANGER_LO  20.0f
-#define HUM_DANGER_HI  70.0f
-
-// ── Gas — universal (ppm CO2-equivalent) ─────────────────────────────────────
-#define GAS_SAFE_PPM   1000.0f
-#define GAS_DANGER_PPM 2000.0f
-
-// ── State ─────────────────────────────────────────────────────────────────────
-static AlertLevel _level  = ALERT_NONE;
+static AlertLevel  _level  = ALERT_NONE;
 static const char* _reason = "All parameters normal";
-static ClimateThresholds _th;
-
-static void setDefaults() {
-    _th = {
-        .tempSafeLo   = 18.0f, .tempSafeHi   = 28.0f,
-        .tempDangerLo = 10.0f, .tempDangerHi = 35.0f,
-    };
-}
+static int _tempState = -1;
+static int _humState  = -1;
+static int _gasState  = -1;
 
 static void setLeds(bool green, bool yellow, bool red) {
     digitalWrite(LED_GREEN,  green  ? HIGH : LOW);
@@ -33,97 +18,73 @@ static void setLeds(bool green, bool yellow, bool red) {
     digitalWrite(LED_RED,    red    ? HIGH : LOW);
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
 void alertBegin() {
     pinMode(LED_GREEN,  OUTPUT);
     pinMode(LED_YELLOW, OUTPUT);
     pinMode(LED_RED,    OUTPUT);
     setLeds(false, false, false);
-    setDefaults();
 }
-
-void alertSetClimate(float meanTemp, float meanHum) {
-    _th.tempSafeLo   = meanTemp - TEMP_SAFE_OFFSET;
-    _th.tempSafeHi   = meanTemp + TEMP_SAFE_OFFSET;
-    _th.tempDangerLo = meanTemp - TEMP_DANGER_OFFSET;
-    _th.tempDangerHi = meanTemp + TEMP_DANGER_OFFSET;
-
-    Serial.printf("[Alert] Temp safe   : %.1f – %.1f deg C\n", _th.tempSafeLo,   _th.tempSafeHi);
-    Serial.printf("[Alert] Temp danger : %.1f – %.1f deg C\n", _th.tempDangerLo, _th.tempDangerHi);
-}
-
-// Per-sensor states exposed for JSON — 0=safe, 1=warning, 2=danger, -1=not connected
-static int _tempState = -1;
-static int _humState  = -1;
-static int _gasState  = -1;
 
 AlertLevel alertUpdate(float temp, float hum, float gas) {
-    // ── Evaluate each sensor independently ───────────────────────────────────
-    // Result per sensor: -1 = not connected, 0 = safe, 1 = unsafe, 2 = danger
     int tempState = -1, humState = -1, gasState = -1;
 
-    if (temp != -999.0f) {
-        if (temp < _th.tempDangerLo || temp > _th.tempDangerHi)
-            tempState = 2;
-        else if (temp < _th.tempSafeLo || temp > _th.tempSafeHi)
-            tempState = 1;
-        else
-            tempState = 0;
+    // Temperature — evaluated via Heat Index (feels-like combining temp + humidity)
+    // This naturally adapts to regional climates: humid 28°C ≠ dry 28°C
+    if (temp != -999.0f && hum != -999.0f) {
+        float feelsLike = heatIndexCalc(temp, hum);
+        HeatIndexZone zone = heatIndexZone(feelsLike);
+        tempState = heatIndexAlertState(zone);
+        _feelsLike    = feelsLike;
+        _comfortLabel = heatIndexZoneLabel(zone);
+        Serial.printf("[Alert] Temp=%.1fC RH=%.1f%% FeelsLike=%.1fC Zone=%s State=%d\n",
+                      temp, hum, feelsLike, heatIndexZoneLabel(zone), tempState);
+    } else if (temp != -999.0f) {
+        // Humidity not available — fall back to raw temperature thresholds
+        if      (temp < TEMP_WARN_LO || temp > TEMP_WARN_HI) tempState = 2;
+        else if (temp < TEMP_SAFE_LO || temp > TEMP_SAFE_HI) tempState = 1;
+        else                                                   tempState = 0;
     }
 
+    // Humidity
     if (hum != -999.0f) {
-        if (hum < HUM_DANGER_LO || hum > HUM_DANGER_HI)
-            humState = 2;
-        else if (hum < HUM_SAFE_LO || hum > HUM_SAFE_HI)
-            humState = 1;
-        else
-            humState = 0;
+        if      (hum < HUM_WARN_LO || hum > HUM_WARN_HI) humState = 2;
+        else if (hum < HUM_SAFE_LO || hum > HUM_SAFE_HI) humState = 1;
+        else                                               humState = 0;
     }
 
+    // Gas
     if (gas != -999.0f && gas > 0) {
-        if (gas >= GAS_DANGER_PPM)
-            gasState = 2;
-        else if (gas >= GAS_SAFE_PPM)
-            gasState = 1;
-        else
-            gasState = 0;
+        if      (gas >= GAS_DANGER_PPM) gasState = 2;
+        else if (gas >= GAS_SAFE_PPM)   gasState = 1;
+        else                            gasState = 0;
     }
 
-    // Store for external access
     _tempState = tempState;
     _humState  = humState;
     _gasState  = gasState;
 
-    // ── Count connected sensors and how many are in each state ────────────────
-    int connected = 0, safe = 0, unsafe = 0, danger = 0;
-    int states[3] = { tempState, humState, gasState };
-    const char* names[3] = { "Temperature", "Humidity", "Air quality" };
+    // Count connected sensors
+    int connected = 0, safe = 0, danger = 0;
+    int states[3]       = { tempState, humState, gasState };
+    const char* names[3]= { "Temperature", "Humidity", "Air quality" };
 
     for (int i = 0; i < 3; i++) {
         if (states[i] == -1) continue;
         connected++;
-        if      (states[i] == 0) safe++;
-        else if (states[i] == 1) unsafe++;
-        else if (states[i] == 2) danger++;
+        if (states[i] == 0) safe++;
+        if (states[i] == 2) danger++;
     }
 
-    // ── Determine LED state ───────────────────────────────────────────────────
-    // Green  : all connected sensors are safe
-    // Yellow : at least one is outside safe range (but not all in danger)
-    // Red    : every connected sensor is in the danger zone
     static char reasonBuf[80];
     AlertLevel prevLevel = _level;
 
     if (connected == 0 || safe == connected) {
-        // All safe (or nothing connected)
         _level  = ALERT_NONE;
         _reason = "All parameters normal";
         setLeds(true, false, false);
 
     } else if (danger == connected) {
-        // Every connected sensor is in danger
         _level = ALERT_DANGER;
-        // Report which sensors are in danger
         char parts[60] = "";
         for (int i = 0; i < 3; i++) {
             if (states[i] == 2) {
@@ -136,7 +97,6 @@ AlertLevel alertUpdate(float temp, float hum, float gas) {
         setLeds(false, false, true);
 
     } else {
-        // At least one out of range but not all in danger
         _level = ALERT_WARNING;
         char parts[60] = "";
         for (int i = 0; i < 3; i++) {
@@ -157,8 +117,10 @@ AlertLevel alertUpdate(float temp, float hum, float gas) {
     return _level;
 }
 
-AlertLevel  alertGetLevel()    { return _level;     }
-const char* alertGetReason()   { return _reason;    }
-int         alertGetTempState(){ return _tempState; }
-int         alertGetHumState() { return _humState;  }
-int         alertGetGasState() { return _gasState;  }
+AlertLevel  alertGetLevel()        { return _level;        }
+const char* alertGetReason()       { return _reason;       }
+int         alertGetTempState()    { return _tempState;    }
+int         alertGetHumState()     { return _humState;     }
+int         alertGetGasState()     { return _gasState;     }
+float       alertGetFeelsLike()    { return _feelsLike;    }
+const char* alertGetComfortLabel() { return _comfortLabel; }

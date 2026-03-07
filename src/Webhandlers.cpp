@@ -57,7 +57,7 @@ static void handleData() {
     // Plain ASCII only — no special chars that could corrupt JSON
     const char* reason = alertGetReason();
 
-    char json[512];
+    char json[600];
     snprintf(json, sizeof(json),
         "{"
         "\"ready\":%s,"
@@ -67,6 +67,8 @@ static void handleData() {
         "\"humidity\":%.1f,"
         "\"gas\":%.1f,"
         "\"aqi\":%d,"
+        "\"feelsLike\":%.1f,"
+        "\"comfortLabel\":\"%s\","
         "\"alertLevel\":%d,"
         "\"alertReason\":\"%s\","
         "\"alertTempState\":%d,"
@@ -83,7 +85,9 @@ static void handleData() {
         dhtReady ? "true" : "false",
         gasReady ? "true" : "false",
         tDisplay, hDisplay, gDisplay,
-        aqi, alertLvl, reason,
+        aqi,
+        alertGetFeelsLike(), alertGetComfortLabel(),
+        alertLvl, reason,
         alertGetTempState(), alertGetHumState(), alertGetGasState(),
         statsMinTemp(), statsMaxTemp(),
         statsMinHum(),  statsMaxHum(),
@@ -115,13 +119,6 @@ static void handleTimezone() {
 }
 
 static void handleClimate() {
-    // meanTemp/meanHum — optional (only sent on initial city submit)
-    if (_server->hasArg("meanTemp") && _server->hasArg("meanHum")) {
-        float meanTemp = _server->arg("meanTemp").toFloat();
-        float meanHum  = _server->arg("meanHum").toFloat();
-        alertSetClimate(meanTemp, meanHum);
-    }
-
     // city — store whenever provided
     if (_server->hasArg("city") && _server->arg("city").length() > 0) {
         strncpy(_city, _server->arg("city").c_str(), sizeof(_city) - 1);

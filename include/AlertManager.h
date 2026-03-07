@@ -5,30 +5,35 @@
 #define LED_YELLOW 26
 #define LED_RED    27
 
+// ── Fixed universal indoor comfort thresholds ────────────────────────────────
+// Temperature (°C)
+#define TEMP_SAFE_LO    18.0f
+#define TEMP_SAFE_HI    26.0f
+#define TEMP_WARN_LO    15.0f
+#define TEMP_WARN_HI    30.0f
+// Humidity (%)
+#define HUM_SAFE_LO     30.0f
+#define HUM_SAFE_HI     60.0f
+#define HUM_WARN_LO     20.0f
+#define HUM_WARN_HI     70.0f
+// Gas ppm (CO2-equivalent)
+#define GAS_SAFE_PPM    1000.0f
+#define GAS_DANGER_PPM  2000.0f
+
 typedef enum {
     ALERT_NONE    = 0,  // All sensors safe        → Green
     ALERT_WARNING = 1,  // Any sensor out of range → Yellow
     ALERT_DANGER  = 2   // All sensors in danger   → Red
 } AlertLevel;
 
-struct ClimateThresholds {
-    float tempSafeLo, tempSafeHi;     // within this → safe
-    float tempDangerLo, tempDangerHi; // outside this → danger
-};
-
-void alertBegin();
-
-// Call with 30-day mean temperature for the user's location.
-// Humidity and gas use fixed universal indoor thresholds.
-void alertSetClimate(float meanTemp, float meanHum);
-
-// Evaluate readings and drive LEDs. Pass -999 for unconnected sensors.
-AlertLevel alertUpdate(float temp, float hum, float gas);
-
+void        alertBegin();
+AlertLevel  alertUpdate(float temp, float hum, float gas);
 AlertLevel  alertGetLevel();
 const char* alertGetReason();
 int         alertGetTempState(); // 0=safe, 1=warning, 2=danger, -1=not connected
 int         alertGetHumState();
 int         alertGetGasState();
+float       alertGetFeelsLike();    // Heat index feels-like temp in °C
+const char* alertGetComfortLabel(); // "Comfortable", "Warm", "Hot" etc.
 
 #endif // ALERT_MANAGER_H
