@@ -19,7 +19,22 @@
     </div>
   </div>
 
-  <h2>Room Environment Dashboard</h2>
+  <!-- Room name heading -->
+  <div class="room-title-row">
+    <h2 id="roomNameDisplay">Room Environment Dashboard</h2>
+    <button class="edit-room-btn" onclick="openRoomNameEditor()" title="Edit room name">&#9998;</button>
+  </div>
+
+  <!-- Room name edit modal -->
+  <div id="roomNameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
+    <div class="modal-box">
+      <h3>&#127968; Room Name</h3>
+      <p>Give this sensor a name to identify the room it's in.</p>
+      <input type="text" id="roomNameInput" placeholder="e.g. Bedroom, Living Room" maxlength="31" autocomplete="off" />
+      <button onclick="saveRoomName()">Save</button>
+      <div id="roomNameError"></div>
+    </div>
+  </div>
 
   <!-- Sensor warmup banner — hidden once sensor is ready -->
   <div id="warmupBanner" class="warmup-banner" style="display:none;">
@@ -53,7 +68,6 @@
       <div class="weather-col">
         <div class="label">&#127807; Outside AQI</div>
         <div class="value"><span id="outsideAqi">--</span></div>
-        <div class="aqi-label" id="outsideAqiLabel">&nbsp;</div>
       </div>
     </div>
     <div id="outsideUpdated" class="outside-updated">--</div>

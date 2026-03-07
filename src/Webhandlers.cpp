@@ -4,6 +4,7 @@
 #include "AqiConverter.h"
 #include "AlertManager.h"
 #include "OledDisplay.h"
+#include "RoomConfig.h"
 #include <SPIFFS.h>
 
 static char  _city[32]       = "Unknown";
@@ -98,7 +99,7 @@ static void handleData() {
 
     // Refresh OLED with indoor readings on every poll
     if (dhtReady) {
-        oledUpdate(_city, temp, hum);
+        oledUpdate(roomGetName(), temp, hum);
     }
 }
 
@@ -133,8 +134,31 @@ static void handleClimate() {
     float t = readTemperature();
     float h = readHumidity();
     if (t != -999.0f && h != -999.0f) {
-        oledUpdate(_city, t, h);
+        oledUpdate(roomGetName(), t, h);
     }
+
+    _server->send(200, "text/plain", "OK");
+}
+
+static void handleRoomNameGet() {
+    char json[64];
+    snprintf(json, sizeof(json), "{\"roomName\":\"%s\"}", roomGetName());
+    _server->send(200, "application/json", json);
+}
+
+static void handleRoomNamePost() {
+    if (!_server->hasArg("name") || _server->arg("name").length() == 0) {
+        _server->send(400, "text/plain", "Missing name");
+        return;
+    }
+    String name = _server->arg("name");
+    name.trim();
+    roomSetName(name.c_str());
+
+    // Update OLED header immediately
+    float t = readTemperature();
+    float h = readHumidity();
+    if (t != -999.0f && h != -999.0f) oledUpdate(roomGetName(), t, h);
 
     _server->send(200, "text/plain", "OK");
 }
@@ -147,6 +171,8 @@ void registerRoutes(WebServer& server) {
     server.on("/data",          handleData);
     server.on("/climate",       HTTP_POST, handleClimate);
     server.on("/timezone",      HTTP_POST, handleTimezone);
+    server.on("/roomname",      HTTP_GET,  handleRoomNameGet);
+    server.on("/roomname",      HTTP_POST, handleRoomNamePost);
     server.on("/favicon.ico",   [&server]() { server.send(204); });
     server.onNotFound([&server]() {
         Serial.printf("[404] %s %s\n",

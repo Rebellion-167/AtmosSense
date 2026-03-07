@@ -10,6 +10,7 @@
 #include "AlertManager.h"
 #include "WiFiManager.h"
 #include "OledDisplay.h"
+#include "RoomConfig.h"
 
 #define NTP_SERVER "pool.ntp.org"
 
@@ -66,6 +67,7 @@ void setup() {
     configTime(0, 0, NTP_SERVER);
 
     statsBegin();
+    roomConfigBegin();
 
     registerRoutes(server);
     server.begin();

@@ -446,11 +446,9 @@ function fetchOutsideWeather(lat, lon) {
       var aqi = air.current && air.current.us_aqi != null ? Math.round(air.current.us_aqi) : null;
       if (aqi !== null) {
         var label = aqiLabel(aqi);
-        if ((el = document.getElementById('outsideAqi')))      { el.textContent = aqi;        el.style.color = label.color; }
-        if ((el = document.getElementById('outsideAqiLabel'))) { el.textContent = label.text; el.style.color = label.color; }
+        if ((el = document.getElementById('outsideAqi'))) { el.textContent = aqi; el.style.color = label.color; }
       } else {
-        if ((el = document.getElementById('outsideAqi')))      el.textContent = '--';
-        if ((el = document.getElementById('outsideAqiLabel'))) el.textContent = '';
+        if ((el = document.getElementById('outsideAqi'))) { el.textContent = '--'; el.style.color = ''; }
       }
 
       if ((el = document.getElementById('outsideUpdated'))) el.textContent = 'Updated: ' + new Date().toLocaleTimeString();
@@ -471,4 +469,54 @@ function fetchOutsideWeather(lat, lon) {
     });
 }
 
+// ── Room name ──────────────────────────────────────────────────────────────────
+function fetchRoomName() {
+  fetch('/roomname')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.roomName) {
+        document.getElementById('roomNameDisplay').textContent = d.roomName;
+        document.title = d.roomName;
+      }
+    })
+    .catch(function() {});
+}
+
+function openRoomNameEditor() {
+  var current = document.getElementById('roomNameDisplay').textContent;
+  document.getElementById('roomNameInput').value = current === 'Room Environment Dashboard' ? '' : current;
+  document.getElementById('roomNameError').textContent = '';
+  document.getElementById('roomNameModal').style.display = 'flex';
+  document.getElementById('roomNameInput').focus();
+}
+
+function saveRoomName() {
+  var name = document.getElementById('roomNameInput').value.trim();
+  if (!name) { document.getElementById('roomNameError').textContent = 'Please enter a room name.'; return; }
+  fetch('/roomname', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'name=' + encodeURIComponent(name)
+  })
+  .then(function() {
+    document.getElementById('roomNameDisplay').textContent = name;
+    document.title = name;
+    document.getElementById('roomNameModal').style.display = 'none';
+  })
+  .catch(function() {
+    document.getElementById('roomNameError').textContent = 'Could not save. Try again.';
+  });
+}
+
+// Close room name modal on backdrop click
+document.getElementById('roomNameModal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+
+// Save on Enter key
+document.getElementById('roomNameInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') saveRoomName();
+});
+
+fetchRoomName();
 showModal();
