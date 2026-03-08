@@ -38,7 +38,7 @@ static void handleJs() {
 static void handleData() {
     float temp = readTemperature();
     float hum  = readHumidity();
-    float gas  = -999.0f;
+    float gas  = readGas();
 
     bool warmedUp = sensorWarmedUp();
     bool dhtReady = (temp != -999.0f && hum != -999.0f);
