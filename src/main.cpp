@@ -78,4 +78,5 @@ void loop() {
     sensorTick();
     server.handleClient();
     statsCheckMidnightReset();
+    oledTick();
 }

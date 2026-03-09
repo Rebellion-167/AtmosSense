@@ -109,9 +109,14 @@ static void handleData() {
 
     _server->send(200, "application/json", json);
 
-    // Refresh OLED with indoor readings on every poll
+    // Refresh OLED with all data on every poll
     if (dhtReady) {
-        oledUpdate(roomGetName(), temp, hum);
+        oledSetData(roomGetName(), temp, hum, gas,
+                alertGetFeelsLike(), alertGetComfortLabel(), aqi,
+                statsMinTemp(), statsMaxTemp(),
+                statsMinHum(),  statsMaxHum(),
+                statsMinGas(),  statsMaxGas(),
+                alertGetTempState(), alertGetHumState(), alertGetGasState());
     }
 }
 
@@ -146,7 +151,12 @@ static void handleClimate() {
     float t = readTemperature();
     float h = readHumidity();
     if (t != -999.0f && h != -999.0f) {
-        oledUpdate(roomGetName(), t, h);
+        oledSetData(roomGetName(), t, h, readGas(),
+                alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(readGas() > 0 ? readGas() : 0),
+                statsMinTemp(), statsMaxTemp(),
+                statsMinHum(),  statsMaxHum(),
+                statsMinGas(),  statsMaxGas(),
+                alertGetTempState(), alertGetHumState(), alertGetGasState());
     }
 
     _server->send(200, "text/plain", "OK");
@@ -170,7 +180,14 @@ static void handleRoomNamePost() {
     // Update OLED header immediately
     float t = readTemperature();
     float h = readHumidity();
-    if (t != -999.0f && h != -999.0f) oledUpdate(roomGetName(), t, h);
+    if (t != -999.0f && h != -999.0f) {
+        oledSetData(roomGetName(), t, h, readGas(),
+                alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(readGas() > 0 ? readGas() : 0),
+                statsMinTemp(), statsMaxTemp(),
+                statsMinHum(),  statsMaxHum(),
+                statsMinGas(),  statsMaxGas(),
+                alertGetTempState(), alertGetHumState(), alertGetGasState());
+    }
 
     _server->send(200, "text/plain", "OK");
 }
