@@ -5,6 +5,7 @@
 #include "AlertManager.h"
 #include "OledDisplay.h"
 #include "RoomConfig.h"
+#include "ActionAdvisor.h"
 #include <SPIFFS.h>
 
 static char  _city[32]       = "Unknown";
@@ -58,7 +59,12 @@ static void handleData() {
     // Plain ASCII only — no special chars that could corrupt JSON
     const char* reason = alertGetReason();
 
-    char json[600];
+    // Generate actionable advice per parameter
+    RoomAdvice tAdv = adviceForTemp(dhtReady ? alertGetComfortLabel() : "Unknown");
+    RoomAdvice hAdv = adviceForHumidity(dhtReady ? hum : -1.0f);
+    RoomAdvice gAdv = adviceForGas(gasReady ? gas : -1.0f);
+
+    char json[1200];
     snprintf(json, sizeof(json),
         "{"
         "\"ready\":%s,"
@@ -75,6 +81,9 @@ static void handleData() {
         "\"alertTempState\":%d,"
         "\"alertHumState\":%d,"
         "\"alertGasState\":%d,"
+        "\"tempAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
+        "\"humAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
+        "\"gasAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
         "\"minTemp\":%.1f,"
         "\"maxTemp\":%.1f,"
         "\"minHum\":%.1f,"
@@ -90,6 +99,9 @@ static void handleData() {
         alertGetFeelsLike(), alertGetComfortLabel(),
         alertLvl, reason,
         alertGetTempState(), alertGetHumState(), alertGetGasState(),
+        tAdv.title, tAdv.action, tAdv.reason, tAdv.urgency,
+        hAdv.title, hAdv.action, hAdv.reason, hAdv.urgency,
+        gAdv.title, gAdv.action, gAdv.reason, gAdv.urgency,
         statsMinTemp(), statsMaxTemp(),
         statsMinHum(),  statsMaxHum(),
         statsMinGas(),  statsMaxGas()

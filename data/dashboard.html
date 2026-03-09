@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Room Dashboard</title>
+  <title>AtmosSense</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="/dashboard.css">
 </head>
@@ -19,12 +19,6 @@
     </div>
   </div>
 
-  <!-- Room name heading -->
-  <div class="room-title-row">
-    <h2 id="roomNameDisplay">Room Environment Dashboard</h2>
-    <button class="edit-room-btn" onclick="openRoomNameEditor()" title="Edit room name">&#9998;</button>
-  </div>
-
   <!-- Room name edit modal -->
   <div id="roomNameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
     <div class="modal-box">
@@ -36,180 +30,202 @@
     </div>
   </div>
 
-  <!-- Sensor warmup banner — hidden once sensor is ready -->
-  <div id="warmupBanner" class="warmup-banner" style="display:none;">
-    <span class="warmup-spinner"></span>
-    &#127777; Sensor warming up — readings will appear shortly...
+  <!-- ── SITE HEADER ────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="site-brand">
+      <div class="site-name">Atmos<span>Sense</span></div>
+      <div class="site-tagline">Real-time indoor air quality monitoring with actionable alerts</div>
+    </div>
+    <div class="banner-meta">
+      <span id="clockCity">&#127759; --</span>
+      <span class="banner-divider">|</span>
+      <span id="clockTime">--:--:--</span>
+      <span class="banner-divider">|</span>
+      <button class="change-city-btn" onclick="showModal()">&#9998; Change City</button>
+    </div>
+  </header>
+
+  <!-- ── ALERT BANNER ───────────────────────────────────────────────────────── -->
+  <div class="alert-banner-section">
+
+    <!-- Room name row -->
+    <div class="banner-header">
+      <div class="banner-room">
+        <span class="banner-room-label">Monitoring</span>
+        <span class="banner-room-name" id="roomNameDisplay">Room</span>
+        <button class="edit-room-btn" onclick="openRoomNameEditor()" title="Edit room name">&#9998;</button>
+      </div>
+    </div>
+
+    <!-- Sensor warmup notice -->
+    <div id="warmupBanner" class="warmup-banner" style="display:none;">
+      <span class="warmup-spinner"></span>
+      Sensor warming up — readings will appear shortly...
+    </div>
+
+    <!-- Three alert panels -->
+    <div class="alert-panels">
+
+      <div class="alert-panel state-unknown" id="tempAlertBox">
+        <div class="alert-panel-icon">&#127777;</div>
+        <div class="alert-panel-body">
+          <div class="alert-panel-param">Temperature</div>
+          <div class="alert-panel-reading" id="tempGaugeValue">--</div>
+          <div class="alert-panel-title" id="tempAlertStatus">--</div>
+          <div class="alert-panel-action" id="tempAlertAction">Waiting for sensor...</div>
+        </div>
+      </div>
+
+      <div class="alert-panel state-unknown" id="humAlertBox">
+        <div class="alert-panel-icon">&#128167;</div>
+        <div class="alert-panel-body">
+          <div class="alert-panel-param">Humidity</div>
+          <div class="alert-panel-reading" id="humGaugeValue">--</div>
+          <div class="alert-panel-title" id="humAlertStatus">--</div>
+          <div class="alert-panel-action" id="humAlertAction">Waiting for sensor...</div>
+        </div>
+      </div>
+
+      <div class="alert-panel state-unknown" id="gasAlertBox">
+        <div class="alert-panel-icon">&#127807;</div>
+        <div class="alert-panel-body">
+          <div class="alert-panel-param">Air Quality</div>
+          <div class="alert-panel-reading" id="gasGaugeValue">--</div>
+          <div class="alert-panel-title" id="gasAlertStatus">--</div>
+          <div class="alert-panel-action" id="gasAlertAction">Waiting for sensor...</div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- City + live clock bar -->
-  <div class="location-bar">
-    <span id="clockCity">&#127759; --</span>
-    <span class="location-bar-divider">|</span>
-    <span id="clockTime">--:--:--</span>
-    <span class="location-bar-divider">|</span>
-    <button class="change-city-btn" onclick="showModal()">&#9998; Change City</button>
+  <!-- ── SECONDARY INFO ─────────────────────────────────────────────────────── -->
+  <div class="secondary-section">
+
+    <!-- Outside weather — centred -->
+    <div class="outside-weather-wrap">
+      <div class="outside-weather">
+        <div class="outside-weather-row">
+          <div class="weather-col">
+            <div class="label">&#127777; Outside Temp</div>
+            <div class="value"><span id="outsideTemp">--</span><span class="unit">°C</span></div>
+          </div>
+          <div class="weather-divider"></div>
+          <div class="weather-col">
+            <div class="label">&#128167; Outside Humidity</div>
+            <div class="value"><span id="outsideHum">--</span><span class="unit">%</span></div>
+          </div>
+          <div class="weather-divider"></div>
+          <div class="weather-col">
+            <div class="label">&#127807; Outside AQI</div>
+            <div class="value"><span id="outsideAqi">--</span></div>
+          </div>
+        </div>
+        <div id="outsideUpdated" class="outside-updated">--</div>
+      </div>
+    </div>
+
+    <div id="weatherStatus" style="min-height:18px;font-size:13px;color:#e74c3c;text-align:center;margin-bottom:8px;"></div>
+
+    <!-- Gauge + chart grid -->
+    <div class="main-layout">
+
+      <!-- Temperature -->
+      <div class="gauge-card">
+        <div class="card-title">&#127777; Indoor Temperature</div>
+        <div class="sensor-overlay" id="tempOverlay">&#128268; Sensor not detected</div>
+        <canvas id="tempGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+        <div class="status-box">
+          <div class="status-label" id="tempLabel">--</div>
+          <div class="status-desc"  id="tempDesc">Waiting for data...</div>
+        </div>
+        <div class="minmax-strip">
+          <div class="minmax-item">
+            <span class="minmax-icon">&#8595;</span>
+            <span class="minmax-label">Min</span>
+            <span class="minmax-value" id="minTemp">--</span>
+            <span class="minmax-unit">°C</span>
+          </div>
+          <div class="minmax-divider"></div>
+          <div class="minmax-item">
+            <span class="minmax-icon">&#8593;</span>
+            <span class="minmax-label">Max</span>
+            <span class="minmax-value" id="maxTemp">--</span>
+            <span class="minmax-unit">°C</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">&#128200; Temperature History (°C)</div>
+        <div class="canvas-wrap"><canvas id="tempChart"></canvas></div>
+      </div>
+
+      <!-- Humidity -->
+      <div class="gauge-card">
+        <div class="card-title">&#128167; Indoor Humidity</div>
+        <div class="sensor-overlay" id="humOverlay">&#128268; Sensor not detected</div>
+        <canvas id="humGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+        <div class="status-box">
+          <div class="status-label" id="humLabel">--</div>
+          <div class="status-desc"  id="humDesc">Waiting for data...</div>
+        </div>
+        <div class="minmax-strip">
+          <div class="minmax-item">
+            <span class="minmax-icon">&#8595;</span>
+            <span class="minmax-label">Min</span>
+            <span class="minmax-value" id="minHum">--</span>
+            <span class="minmax-unit">%</span>
+          </div>
+          <div class="minmax-divider"></div>
+          <div class="minmax-item">
+            <span class="minmax-icon">&#8593;</span>
+            <span class="minmax-label">Max</span>
+            <span class="minmax-value" id="maxHum">--</span>
+            <span class="minmax-unit">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">&#128201; Humidity History (%)</div>
+        <div class="canvas-wrap"><canvas id="humChart"></canvas></div>
+      </div>
+
+      <!-- Air Quality -->
+      <div class="gauge-card">
+        <div class="card-title">&#127807; Air Quality (ppm)</div>
+        <div class="sensor-overlay" id="gasOverlay">&#128268; Sensor not detected</div>
+        <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+        <div class="status-box">
+          <div class="status-label" id="gasLabel">--</div>
+          <div class="status-desc"  id="gasDesc">Waiting for data...</div>
+          <div class="aqi-row">
+            <span class="aqi-row-label">Indoor AQI</span>
+            <span class="aqi-badge" id="indoorAqiBadge">--</span>
+          </div>
+        </div>
+        <div class="minmax-strip">
+          <div class="minmax-item">
+            <span class="minmax-icon">&#8595;</span>
+            <span class="minmax-label">Min</span>
+            <span class="minmax-value" id="minGas">--</span>
+            <span class="minmax-unit">ppm</span>
+          </div>
+          <div class="minmax-divider"></div>
+          <div class="minmax-item">
+            <span class="minmax-icon">&#8593;</span>
+            <span class="minmax-label">Max</span>
+            <span class="minmax-value" id="maxGas">--</span>
+            <span class="minmax-unit">ppm</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">&#128202; Air Quality History (ppm)</div>
+        <div class="canvas-wrap"><canvas id="gasChart"></canvas></div>
+      </div>
+
+    </div>
   </div>
-
-  <!-- Outside weather widget -->
-  <div class="outside-header">
-    <div class="outside-weather">
-    <div class="outside-weather-row">
-      <div class="weather-col">
-        <div class="label">&#127777; Outside Temp</div>
-        <div class="value"><span id="outsideTemp">--</span><span class="unit">°C</span></div>
-      </div>
-      <div class="weather-divider"></div>
-      <div class="weather-col">
-        <div class="label">&#128167; Outside Humidity</div>
-        <div class="value"><span id="outsideHum">--</span><span class="unit">%</span></div>
-      </div>
-      <div class="weather-divider"></div>
-      <div class="weather-col">
-        <div class="label">&#127807; Outside AQI</div>
-        <div class="value"><span id="outsideAqi">--</span></div>
-      </div>
-    </div>
-    <div id="outsideUpdated" class="outside-updated">--</div>
-  </div>
-  </div>
-
-  <!-- Parameter alert boxes -->
-  <div class="alert-container">
-    <div class="alert-container-title">Indoor Air Status</div>
-    <div class="param-alert-row">
-
-      <div class="param-alert-box state-unknown" id="tempAlertBox">
-        <div class="param-alert-icon">&#127777;</div>
-        <div class="param-alert-text">
-          <div class="param-alert-name">Temperature</div>
-          <div class="param-alert-status" id="tempAlertStatus">--</div>
-        </div>
-      </div>
-
-      <div class="param-alert-box state-unknown" id="humAlertBox">
-        <div class="param-alert-icon">&#128167;</div>
-        <div class="param-alert-text">
-          <div class="param-alert-name">Humidity</div>
-          <div class="param-alert-status" id="humAlertStatus">--</div>
-        </div>
-      </div>
-
-      <div class="param-alert-box state-unknown" id="gasAlertBox">
-        <div class="param-alert-icon">&#127807;</div>
-        <div class="param-alert-text">
-          <div class="param-alert-name">Air Quality</div>
-          <div class="param-alert-status" id="gasAlertStatus">--</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Main two-column grid -->
-  <div class="main-layout">
-
-    <!-- Row 1: Temperature -->
-    <div class="gauge-card">
-      <div class="card-title">&#127777; Indoor Temperature</div>
-      <div class="sensor-overlay" id="tempOverlay">&#128268; Sensor not detected</div>
-      <canvas id="tempGaugeCanvas" class="gauge" width="300" height="220"></canvas>
-      <div class="gauge-value" id="tempGaugeValue">--</div>
-      <div class="status-box">
-        <div class="status-label" id="tempLabel">--</div>
-        <div class="status-desc"  id="tempDesc">Waiting for data...</div>
-      </div>
-      <div class="minmax-strip">
-        <div class="minmax-item">
-          <span class="minmax-icon">&#8595;</span>
-          <span class="minmax-label">Min</span>
-          <span class="minmax-value" id="minTemp">--</span>
-          <span class="minmax-unit">°C</span>
-        </div>
-        <div class="minmax-divider"></div>
-        <div class="minmax-item">
-          <span class="minmax-icon">&#8593;</span>
-          <span class="minmax-label">Max</span>
-          <span class="minmax-value" id="maxTemp">--</span>
-          <span class="minmax-unit">°C</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="card-title">&#128200; Temperature History (°C)</div>
-      <div class="canvas-wrap"><canvas id="tempChart"></canvas></div>
-    </div>
-
-    <!-- Row 2: Humidity -->
-    <div class="gauge-card">
-      <div class="card-title">&#128167; Indoor Humidity</div>
-      <div class="sensor-overlay" id="humOverlay">&#128268; Sensor not detected</div>
-      <canvas id="humGaugeCanvas" class="gauge" width="300" height="220"></canvas>
-      <div class="gauge-value" id="humGaugeValue">--</div>
-      <div class="status-box">
-        <div class="status-label" id="humLabel">--</div>
-        <div class="status-desc"  id="humDesc">Waiting for data...</div>
-      </div>
-      <div class="minmax-strip">
-        <div class="minmax-item">
-          <span class="minmax-icon">&#8595;</span>
-          <span class="minmax-label">Min</span>
-          <span class="minmax-value" id="minHum">--</span>
-          <span class="minmax-unit">%</span>
-        </div>
-        <div class="minmax-divider"></div>
-        <div class="minmax-item">
-          <span class="minmax-icon">&#8593;</span>
-          <span class="minmax-label">Max</span>
-          <span class="minmax-value" id="maxHum">--</span>
-          <span class="minmax-unit">%</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="card-title">&#128201; Humidity History (%)</div>
-      <div class="canvas-wrap"><canvas id="humChart"></canvas></div>
-    </div>
-
-    <!-- Row 3: Air Quality (MQ-135) -->
-    <div class="gauge-card">
-      <div class="card-title">&#127807; Air Quality (ppm)</div>
-      <div class="sensor-overlay" id="gasOverlay">&#128268; Sensor not detected</div>
-      <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
-      <div class="gauge-value" id="gasGaugeValue">--</div>
-      <div class="status-box">
-        <div class="status-label" id="gasLabel">&#128268; Sensor not connected</div>
-        <div class="status-desc"  id="gasDesc">MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.</div>
-        <div class="aqi-row">
-          <span class="aqi-row-label">Indoor AQI</span>
-          <span class="aqi-badge" id="indoorAqiBadge">--</span>
-        </div>
-      </div>
-      <div class="minmax-strip">
-        <div class="minmax-item">
-          <span class="minmax-icon">&#8595;</span>
-          <span class="minmax-label">Min</span>
-          <span class="minmax-value" id="minGas">--</span>
-          <span class="minmax-unit">ppm</span>
-        </div>
-        <div class="minmax-divider"></div>
-        <div class="minmax-item">
-          <span class="minmax-icon">&#8593;</span>
-          <span class="minmax-label">Max</span>
-          <span class="minmax-value" id="maxGas">--</span>
-          <span class="minmax-unit">ppm</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="card-title">&#128202; Air Quality History (ppm)</div>
-      <div class="canvas-wrap"><canvas id="gasChart"></canvas></div>
-    </div>
-
-  </div><!-- end main-layout -->
 
   <script src="/dashboard.js"></script>
 </body>

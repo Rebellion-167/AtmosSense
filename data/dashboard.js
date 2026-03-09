@@ -232,40 +232,41 @@ function updateMinMaxDisplay(data) {
 
 // ── Per-parameter alert boxes ──────────────────────────────────────────────────
 function updateParamAlerts(data) {
-  function setBox(boxId, statusId, state, statusText) {
+  function setPanel(boxId, statusId, actionId, state, title, action) {
     var box = document.getElementById(boxId);
     var st  = document.getElementById(statusId);
-    if (!box || !st) return;
-    box.className   = 'param-alert-box state-' + state;
-    st.textContent  = statusText;
+    var ac  = document.getElementById(actionId);
+    if (!box) return;
+    box.className = 'alert-panel state-' + state;
+    if (st) st.textContent = title;
+    if (ac) ac.textContent = action;
   }
 
-  // Temperature — show heat index comfort label
+  // Temperature
   if (!data.dhtConnected) {
-    setBox('tempAlertBox', 'tempAlertStatus', 'unknown', 'No Sensor');
+    setPanel('tempAlertBox', 'tempAlertStatus', 'tempAlertAction', 'unknown', 'No Sensor', 'Check DHT11 connection.');
   } else {
-    var label = data.comfortLabel || 'Normal';
-    if      (data.alertTempState === 2) setBox('tempAlertBox', 'tempAlertStatus', 'danger',  label);
-    else if (data.alertTempState === 1) setBox('tempAlertBox', 'tempAlertStatus', 'warning', label);
-    else                                setBox('tempAlertBox', 'tempAlertStatus', 'normal',  label);
+    var ta = data.tempAdvice || {};
+    var tState = data.alertTempState === 2 ? 'danger' : data.alertTempState === 1 ? 'warning' : 'normal';
+    setPanel('tempAlertBox', 'tempAlertStatus', 'tempAlertAction', tState, ta.title || '', ta.action || '');
   }
 
   // Humidity
   if (!data.dhtConnected) {
-    setBox('humAlertBox', 'humAlertStatus', 'unknown', 'No Sensor');
+    setPanel('humAlertBox', 'humAlertStatus', 'humAlertAction', 'unknown', 'No Sensor', 'Check DHT11 connection.');
   } else {
-    if      (data.alertHumState === 2) setBox('humAlertBox', 'humAlertStatus', 'danger',  'Danger');
-    else if (data.alertHumState === 1) setBox('humAlertBox', 'humAlertStatus', 'warning', 'Out of Range');
-    else                               setBox('humAlertBox', 'humAlertStatus', 'normal',  'Normal');
+    var ha = data.humAdvice || {};
+    var hState = data.alertHumState === 2 ? 'danger' : data.alertHumState === 1 ? 'warning' : 'normal';
+    setPanel('humAlertBox', 'humAlertStatus', 'humAlertAction', hState, ha.title || '', ha.action || '');
   }
 
   // Gas
   if (!data.gasConnected) {
-    setBox('gasAlertBox', 'gasAlertStatus', 'unknown', 'No Sensor');
+    setPanel('gasAlertBox', 'gasAlertStatus', 'gasAlertAction', 'unknown', 'No Sensor', 'Check MQ-135 connection.');
   } else {
-    if      (data.alertGasState === 2) setBox('gasAlertBox', 'gasAlertStatus', 'danger',  'Danger');
-    else if (data.alertGasState === 1) setBox('gasAlertBox', 'gasAlertStatus', 'warning', 'Out of Range');
-    else                               setBox('gasAlertBox', 'gasAlertStatus', 'normal',  'Normal');
+    var ga = data.gasAdvice || {};
+    var gState = data.alertGasState === 2 ? 'danger' : data.alertGasState === 1 ? 'warning' : 'normal';
+    setPanel('gasAlertBox', 'gasAlertStatus', 'gasAlertAction', gState, ga.title || '', ga.action || '');
   }
 }
 
@@ -476,7 +477,7 @@ function fetchRoomName() {
     .then(function(d) {
       if (d.roomName) {
         document.getElementById('roomNameDisplay').textContent = d.roomName;
-        document.title = d.roomName;
+        document.title = 'AtmosSense 2014 ' + d.roomName;
       }
     })
     .catch(function() {});
@@ -500,7 +501,7 @@ function saveRoomName() {
   })
   .then(function() {
     document.getElementById('roomNameDisplay').textContent = name;
-    document.title = name;
+    document.title = 'AtmosSense 2014 ' + name;
     document.getElementById('roomNameModal').style.display = 'none';
   })
   .catch(function() {
