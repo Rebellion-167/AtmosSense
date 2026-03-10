@@ -1,10 +1,13 @@
 #ifndef SENSOR_READER_H
 #define SENSOR_READER_H
 
-// Initialise sensors — call once in setup(), returns immediately
+// ── SHT30 temperature & humidity sensor (I2C 0x44, shared bus SDA=21 SCL=22)
+// ── MQ-135 gas sensor (analog, GPIO34, 5.6k/10k voltage divider)
+
+// Initialise sensors — call once in setup() AFTER Wire.begin()
 void sensorBegin();
 
-// Call every loop() — handles non-blocking DHT warmup. Returns true once ready.
+// Call every loop() — handles non-blocking SHT30 warmup. Returns true once ready.
 bool sensorTick();
 
 // Read temperature in °C; returns -999.0 if not ready or read failed
@@ -17,7 +20,7 @@ float readHumidity();
 // Returns -999.0 if sensor not connected or reading invalid
 float readGas();
 
-// True once DHT warmup is complete
+// True once warmup is complete
 bool sensorWarmedUp();
 
 #endif // SENSOR_READER_H

@@ -51,11 +51,11 @@ void setup() {
     // Check if user is holding BOOT to reset WiFi
     checkResetButton();
 
-    // Non-blocking sensor warmup
-    sensorBegin();
-
-    // Init OLED early so status messages show during boot
+    // Init OLED first — this calls Wire.begin(21,22) which the SHT30 also needs
     oledBegin();
+
+    // Non-blocking sensor warmup — SHT30 shares the Wire bus started above
+    sensorBegin();
 
     // Connect to WiFi — if no credentials, WiFiManager starts AP portal
     if (wifiHasCredentials()) oledStatus("Connecting...", "to WiFi");
