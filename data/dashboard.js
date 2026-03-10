@@ -511,7 +511,7 @@ function updateData() {
     var aqi   = data.aqi || -1;
     var badge = document.getElementById('indoorAqiBadge');
     if (aqi >= 0 && gasOk) {
-      badge.textContent      = 'AQI ' + aqi + ' — ' + aqiText(aqi);
+      badge.textContent      = 'IAI ' + aqi + ' — ' + aqiText(aqi);
       badge.style.background = aqiColor(aqi);
     } else {
       badge.textContent      = '--';

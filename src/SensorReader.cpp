@@ -79,6 +79,7 @@ float readHumidity() {
 
 float readGas() {
     int raw = analogRead(MQ135_PIN);
+    Serial.printf("[MQ-135] raw=%d vMeasured=%.3f\n", raw, (raw / 4095.0f) * 3.3f);
     if (raw < MQ135_MIN_RAW) return -999.0f;
 
     float vMeasured = (raw / MQ135_ADC_MAX) * MQ135_VREF;

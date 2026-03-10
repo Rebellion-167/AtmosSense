@@ -27,12 +27,24 @@ static int   _tempState   = -1;
 static int   _humState    = -1;
 static int   _gasState    = -1;
 
+// ── System info cache ─────────────────────────────────────────────────────────
+static char  _ip[20]         = "0.0.0.0";
+static unsigned long _uptimeSec = 0;
+
 // ── Alert page state ──────────────────────────────────────────────────────────
-static bool          _dangerActive  = false;  // currently showing danger page
-static uint8_t       _savedPage     = 0;      // page to return to after danger clears
-static unsigned long _flashTimer    = 0;
-static bool          _flashInvert   = false;
-#define FLASH_INTERVAL_MS  500
+static bool          _dangerActive   = false;
+static uint8_t       _savedPage      = 0;
+static unsigned long _flashTimer     = 0;
+static bool          _flashInvert    = false;
+static bool          _btnOverride    = false;
+static unsigned long _btnOverrideMs  = 0;
+static bool          _dangerShown    = false;
+static unsigned long _dangerShownMs  = 0;
+static unsigned long _dangerStartMs  = 0;    // when current danger pop started
+#define FLASH_INTERVAL_MS    500
+#define BTN_OVERRIDE_MS     8000
+#define DANGER_LOCKOUT_MS  30000
+#define DANGER_POPUP_MS     4000   // show danger page for 4 seconds then auto-dismiss
 
 // ── Page + button state ───────────────────────────────────────────────────────
 static uint8_t       _page       = 0;
@@ -166,7 +178,7 @@ static void drawPageOverview() {
 
     _disp.setTextSize(1);
     _disp.setCursor(0, 56);
-    _disp.print("AQI");
+    _disp.print("IAI");
     if (_gas > 0) snprintf(buf, sizeof(buf), "%d", _aqi);
     else          snprintf(buf, sizeof(buf), "--");
     printRight(buf, 56, 1);
@@ -273,7 +285,7 @@ static void drawPageGas() {
 
     _disp.setTextSize(1);
     _disp.setCursor(0, 35);
-    _disp.print("AQI:");
+    _disp.print("IAI:");
     snprintf(buf, sizeof(buf), "%d", _aqi);
     printRight(buf, 35, 1);
     hline(44);
@@ -289,7 +301,53 @@ static void drawPageGas() {
     if (_gasState == 1) { hline(56); drawWarningStripe(); }
 }
 
-// ── Check if any parameter is in danger ───────────────────────────────────────
+// ── Page 4 — System Info ──────────────────────────────────────────────────────
+static void drawPageSystem() {
+    char buf[24];
+
+    _disp.setTextSize(1);
+    _disp.setCursor(0, 0);
+    _disp.print("SYSTEM INFO");
+    drawDots();
+    hline(10);
+
+    // Room name
+    _disp.setCursor(0, 13);
+    _disp.print("Room:");
+    _disp.setCursor(36, 13);
+    char room[18]; strncpy(room, _room, 17); room[17] = '\0';
+    _disp.print(room);
+
+    hline(23);
+
+    // IP address
+    _disp.setCursor(0, 26);
+    _disp.print("IP:");
+    _disp.setCursor(20, 26);
+    _disp.print(_ip);
+
+    hline(36);
+
+    // Uptime
+    unsigned long s = _uptimeSec;
+    unsigned long d = s / 86400; s %= 86400;
+    unsigned long h = s / 3600;  s %= 3600;
+    unsigned long m = s / 60;    s %= 60;
+    _disp.setCursor(0, 39);
+    _disp.print("Up:");
+    if (d > 0) snprintf(buf, sizeof(buf), "%lud %02lu:%02lu:%02lu", d, h, m, s);
+    else       snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", h, m, s);
+    _disp.setCursor(20, 39);
+    _disp.print(buf);
+
+    hline(50);
+
+    // Branding footer
+    _disp.setCursor(0, 54);
+    _disp.print("AtmosSense  v1.0");
+}
+
+
 static bool anyDanger() {
     return (_tempState == 2 || _humState == 2 || _gasState == 2);
 }
@@ -309,6 +367,7 @@ static void redraw() {
         case 1: drawPageTemp();     break;
         case 2: drawPageHum();      break;
         case 3: drawPageGas();      break;
+        case 4: drawPageSystem();   break;
     }
     _disp.display();
 }
@@ -358,31 +417,63 @@ void oledSetData(const char* room,
 
     bool danger = anyDanger();
 
-    if (danger && !_dangerActive) {
-        // Danger just triggered — save page and switch to alert page
-        _savedPage   = _page;
-        _dangerActive = true;
-        _flashTimer  = millis();
-        _flashInvert = false;
-        Serial.println("[OLED] DANGER — switching to alert page");
-    } else if (!danger && _dangerActive) {
-        // Danger cleared — return to saved page
-        _dangerActive = false;
-        _page = _savedPage;
-        Serial.println("[OLED] Danger cleared — returning to normal page");
+    // Button override — user manually navigated away, hold off briefly
+    if (_btnOverride && millis() - _btnOverrideMs < BTN_OVERRIDE_MS) {
+        redraw();
+        return;
+    }
+    _btnOverride = false;
+
+    if (danger) {
+        bool lockoutExpired = (millis() - _dangerShownMs >= DANGER_LOCKOUT_MS);
+
+        if (!_dangerActive && (!_dangerShown || lockoutExpired)) {
+            _savedPage     = _page;
+            _dangerActive  = true;
+            _dangerShown   = true;
+            _dangerShownMs = millis();
+            _dangerStartMs = millis();
+            _flashTimer    = millis();
+            _flashInvert   = false;
+            Serial.printf("[OLED] DANGER — popup for %dms, lockout %ds\n", DANGER_POPUP_MS, DANGER_LOCKOUT_MS / 1000);
+        }
+        // else: danger is ongoing but within lockout window — leave current page alone
+
+    } else {
+        // Conditions cleared
+        if (_dangerActive || _dangerShown) {
+            _dangerActive = false;
+            _dangerShown  = false;
+            _page = _savedPage;
+            Serial.println("[OLED] Danger cleared — returning to normal page");
+        }
     }
 
     redraw();
+}
+
+void oledSetSystem(const char* ip, unsigned long uptimeSeconds) {
+    strncpy(_ip, ip ? ip : "0.0.0.0", sizeof(_ip) - 1);
+    _uptimeSec = uptimeSeconds;
+    if (_ready && !_inStatus && !_dangerActive && _page == 4) redraw();
 }
 
 void oledTick() {
     if (!_ready) return;
 
     // Flash the danger page
-    if (_dangerActive && millis() - _flashTimer >= FLASH_INTERVAL_MS) {
-        _flashTimer  = millis();
-        _flashInvert = !_flashInvert;
-        drawPageDanger();  // redraw with toggled invert
+    if (_dangerActive) {
+        // Auto-dismiss after popup duration
+        if (millis() - _dangerStartMs >= DANGER_POPUP_MS) {
+            _dangerActive = false;
+            _page = _savedPage;
+            redraw();
+            Serial.println("[OLED] Danger popup dismissed — returning to normal page");
+        } else if (millis() - _flashTimer >= FLASH_INTERVAL_MS) {
+            _flashTimer  = millis();
+            _flashInvert = !_flashInvert;
+            drawPageDanger();
+        }
     }
 
     // Button handling
@@ -394,18 +485,13 @@ void oledTick() {
 
     if (_lastBtn == LOW && btn == HIGH) {
         if (millis() - _debounceMs >= BTN_DEBOUNCE_MS) {
-            if (_dangerActive) {
-                // Button during danger: temporarily show next info page
-                // but danger page will return on next oledSetData call
-                _page = (_savedPage + 1) % OLED_PAGES;
-                _savedPage = _page;
-                _dangerActive = false;   // suppress until next data update
-                redraw();
-            } else {
-                _page = (_page + 1) % OLED_PAGES;
-                redraw();
-            }
-            Serial.printf("[OLED] Page -> %d\n", _page);
+            _dangerActive  = false;
+            _dangerShown   = false;   // reset lockout — next danger will pop fresh
+            _btnOverride   = true;
+            _btnOverrideMs = millis();
+            _page = (_page + 1) % OLED_PAGES;
+            redraw();
+            Serial.printf("[OLED] Page -> %d (override for %dms)\n", _page, BTN_OVERRIDE_MS);
         }
     }
 

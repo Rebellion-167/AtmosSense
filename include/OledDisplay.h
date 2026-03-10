@@ -21,15 +21,16 @@
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 // 0 — Overview   : room name + live temp / hum / AQI
-// 1 — Temperature: current, feels-like, comfort label, min/max
+// 1 — Temperature: current, comfort label, min/max
 // 2 — Humidity   : current, ideal range, min/max
 // 3 — Air Quality: ppm, AQI, status, min/max
-#define OLED_PAGES 4
+// 4 — System Info: room name, IP address, uptime, AtmosSense
+#define OLED_PAGES 5
 
 // Call once in setup()
 void oledBegin();
 
-// Update data cache and redraw current page — call every poll cycle
+// Update sensor data cache and redraw current page — call every poll cycle
 void oledSetData(const char* room,
                  float temp,      float hum,          float gas,
                  float feelsLike, const char* comfortLabel,
@@ -38,6 +39,10 @@ void oledSetData(const char* room,
                  float minHum,    float maxHum,
                  float minGas,    float maxGas,
                  int   tempState, int humState, int gasState);
+
+// Update system info cache (IP, uptime) — call once after WiFi connects,
+// then periodically (e.g. every minute) to keep uptime fresh
+void oledSetSystem(const char* ip, unsigned long uptimeSeconds);
 
 // Call every loop() — handles button press and page advance
 void oledTick();

@@ -61,6 +61,8 @@ void setup() {
     if (wifiHasCredentials()) oledStatus("Connecting...", "to WiFi");
     wifiManagerBegin();
     oledStatus("WiFi OK", WiFi.localIP().toString().c_str());
+    // Push IP into system page cache immediately
+    oledSetSystem(WiFi.localIP().toString().c_str(), 0);
     delay(1500);
     oledStatus("Sensor warming up", "please wait...");
 
@@ -79,4 +81,11 @@ void loop() {
     server.handleClient();
     statsCheckMidnightReset();
     oledTick();
+
+    // Update uptime on system page every second
+    static unsigned long _lastUptimeMs = 0;
+    if (millis() - _lastUptimeMs >= 1000) {
+        _lastUptimeMs = millis();
+        oledSetSystem(WiFi.localIP().toString().c_str(), millis() / 1000);
+    }
 }
