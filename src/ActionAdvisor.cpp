@@ -11,19 +11,19 @@ RoomAdvice adviceForTemp(const char* comfortLabel) {
     if (strcmp(comfortLabel, "Cold") == 0) return {
         "Cold Room",
         "Wear warm clothing or turn on a heater.",
-        "Prolonged exposure can cause discomfort and reduce immunity.",
+        "Prolonged exposure below 20°C can cause discomfort and reduce immunity.",
         1
     };
     if (strcmp(comfortLabel, "Warm") == 0) return {
         "Warm — Stay Hydrated",
         "Drink water regularly and ensure airflow.",
-        "Heat and humidity combined increase fatigue and dehydration risk.",
+        "Feels-like temperature is approaching the alert threshold.",
         1
     };
     if (strcmp(comfortLabel, "Hot") == 0) return {
         "Heat Stress Risk",
         "Turn on AC or fan immediately. Move to a cooler area. Drink water.",
-        "Conditions can cause heat exhaustion within hours.",
+        "Conditions above 32°C can cause heat exhaustion within hours.",
         2
     };
     if (strcmp(comfortLabel, "Very Hot") == 0) return {
@@ -32,44 +32,49 @@ RoomAdvice adviceForTemp(const char* comfortLabel) {
         "Heat stroke risk. This is a medical emergency if symptoms appear.",
         2
     };
-    // Comfortable
     return {
         "Comfortable",
         "No action needed. Conditions are ideal.",
-        "Temperature and humidity are within healthy indoor comfort range.",
+        "Temperature is within the healthy indoor range of 20–28°C.",
         0
     };
 }
 
 RoomAdvice adviceForHumidity(float humidity) {
+    if (humidity < 0.0f) return {
+        "Sensor Offline",
+        "Check DHT sensor connection.",
+        "Unable to monitor humidity.",
+        0
+    };
     if (humidity < 20.0f) return {
         "Critically Dry Air",
         "Use a humidifier immediately. Drink more water.",
-        "Severe dryness damages respiratory tract and skin. Eyes may feel irritated.",
+        "Severe dryness damages respiratory tract and skin.",
         2
     };
     if (humidity < 30.0f) return {
         "Dry Air",
         "Use a humidifier or place water containers near heat sources.",
-        "Dry air irritates airways and increases static electricity.",
+        "Below 30% irritates airways and increases static electricity.",
         1
     };
     if (humidity > 70.0f) return {
         "Critically Humid",
         "Open windows, run a dehumidifier or exhaust fan immediately.",
-        "Mould growth accelerates above 70%. Risk of respiratory illness.",
+        "Above 70% accelerates mould growth and risks respiratory illness.",
         2
     };
     if (humidity > 60.0f) return {
         "High Humidity",
         "Improve ventilation. Open a window or run a fan.",
-        "High humidity promotes mould, dust mites and discomfort.",
+        "Above 60% promotes mould and dust mites.",
         1
     };
     return {
         "Humidity OK",
         "No action needed.",
-        "Humidity is within the healthy indoor range of 30-60%.",
+        "Humidity is within the healthy indoor range of 40–60%.",
         0
     };
 }
@@ -87,16 +92,16 @@ RoomAdvice adviceForGas(float ppm) {
         "Extremely dangerous air quality. Risk of unconsciousness.",
         2
     };
-    if (ppm >= 2000.0f) return {
+    if (ppm >= 1200.0f) return {
         "Dangerous Air Quality",
         "Open all windows and doors immediately. Identify the source.",
-        "Levels this high cause headaches, dizziness and breathing difficulty.",
+        "Above 1200 ppm causes headaches, dizziness and breathing difficulty.",
         2
     };
-    if (ppm >= 1000.0f) return {
+    if (ppm >= 800.0f) return {
         "Poor Air Quality",
         "Open a window or turn on ventilation. Reduce indoor sources.",
-        "Stuffy air reduces focus and causes fatigue over time.",
+        "Above 800 ppm reduces focus and causes fatigue over time.",
         1
     };
     if (ppm >= 600.0f) return {
@@ -108,7 +113,7 @@ RoomAdvice adviceForGas(float ppm) {
     return {
         "Air Quality Good",
         "No action needed.",
-        "CO2 levels are within healthy range.",
+        "CO2 levels are within the healthy range below 800 ppm.",
         0
     };
 }

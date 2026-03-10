@@ -1,5 +1,4 @@
 #include "AlertManager.h"
-#include "HeatIndex.h"
 #include <Arduino.h>
 
 // Store feels-like for external access
@@ -28,21 +27,22 @@ void alertBegin() {
 AlertLevel alertUpdate(float temp, float hum, float gas) {
     int tempState = -1, humState = -1, gasState = -1;
 
-    // Temperature — evaluated via Heat Index (feels-like combining temp + humidity)
-    // This naturally adapts to regional climates: humid 28°C ≠ dry 28°C
-    if (temp != -999.0f && hum != -999.0f) {
-        float feelsLike = heatIndexCalc(temp, hum);
-        HeatIndexZone zone = heatIndexZone(feelsLike);
-        tempState = heatIndexAlertState(zone);
-        _feelsLike    = feelsLike;
-        _comfortLabel = heatIndexZoneLabel(zone);
-        Serial.printf("[Alert] Temp=%.1fC RH=%.1f%% FeelsLike=%.1fC Zone=%s State=%d\n",
-                      temp, hum, feelsLike, heatIndexZoneLabel(zone), tempState);
-    } else if (temp != -999.0f) {
-        // Humidity not available — fall back to raw temperature thresholds
+    // Temperature — direct raw thresholds, no heat index
+    if (temp != -999.0f) {
         if      (temp < TEMP_WARN_LO || temp > TEMP_WARN_HI) tempState = 2;
         else if (temp < TEMP_SAFE_LO || temp > TEMP_SAFE_HI) tempState = 1;
         else                                                   tempState = 0;
+
+        // Comfort label based on raw temp
+        if      (temp < 10.0f)  _comfortLabel = "Too Cold";
+        else if (temp < 20.0f)  _comfortLabel = "Cold";
+        else if (temp < 28.0f)  _comfortLabel = "Comfortable";
+        else if (temp < 32.0f)  _comfortLabel = "Warm";
+        else if (temp < 41.0f)  _comfortLabel = "Hot";
+        else                    _comfortLabel = "Very Hot";
+
+        _feelsLike = temp;  // no adjustment indoors
+        Serial.printf("[Alert] Temp=%.1fC State=%d (%s)\n", temp, tempState, _comfortLabel);
     }
 
     // Humidity

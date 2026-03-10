@@ -50,8 +50,8 @@ float heatIndexCalc(float T, float R) {
 
 HeatIndexZone heatIndexZone(float feelsLike) {
     if (feelsLike < 10.0f)  return HI_TOO_COLD;
-    if (feelsLike < 18.0f)  return HI_COLD;
-    if (feelsLike < 26.0f)  return HI_COMFORTABLE;
+    if (feelsLike < 20.0f)  return HI_COLD;
+    if (feelsLike < 28.0f)  return HI_COMFORTABLE;
     if (feelsLike < 32.0f)  return HI_WARM;
     if (feelsLike < 41.0f)  return HI_HOT;
     return                         HI_VERY_HOT;

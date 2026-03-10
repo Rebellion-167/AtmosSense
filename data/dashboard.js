@@ -239,7 +239,12 @@ function updateParamAlerts(data) {
     if (!box) return;
     box.className = 'alert-panel state-' + state;
     if (st) st.textContent = title;
-    if (ac) ac.textContent = action;
+    if (ac) {
+      var ts = (state === 'danger' && _dangerTriggeredAt)
+               ? action + ' (since ' + _dangerTriggeredAt + ')'
+               : action;
+      ac.textContent = ts;
+    }
   }
 
   // Temperature
@@ -273,6 +278,189 @@ function updateParamAlerts(data) {
 // ── Sensor polling ─────────────────────────────────────────────────────────────
 var dataInterval = null;
 
+// ── Danger banner + notifications ─────────────────────────────────────────────
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.getElementById('tabOverview').style.display = name === 'overview' ? 'block' : 'none';
+  document.getElementById('tabAlerts').style.display   = name === 'alerts'   ? 'block' : 'none';
+  document.getElementById('tabBtnOverview').classList.toggle('active', name === 'overview');
+  document.getElementById('tabBtnAlerts').classList.toggle('active',   name === 'alerts');
+  if (name === 'overview') {
+    // Force chart resize after tab becomes visible
+    setTimeout(function() {
+      tempChart.resize(); humChart.resize(); gasChart.resize();
+    }, 50);
+  }
+}
+
+// ── Alert history ──────────────────────────────────────────────────────────────
+var _alertLog       = [];          // { time, type:'danger'|'warning'|'clear', title, detail }
+var _lastAlertLevel = 0;
+var _dangerTriggeredAt = null;
+
+// Param configs for active alert cards
+var _paramConfig = {
+  temp: { icon: '\u{1F321}', label: 'Temperature' },
+  hum:  { icon: '\u{1F4A7}', label: 'Humidity' },
+  gas:  { icon: '\u{1F33F}', label: 'Air Quality' }
+};
+
+function addLogEntry(type, title, detail) {
+  var time = new Date().toLocaleTimeString();
+  _alertLog.unshift({ time: time, type: type, title: title, detail: detail });
+  if (_alertLog.length > 50) _alertLog.pop();
+  renderAlertLog();
+}
+
+function renderAlertLog() {
+  var list = document.getElementById('alertHistoryList');
+  if (!list) return;
+  if (_alertLog.length === 0) {
+    list.innerHTML = '<div class="no-alerts-msg">No alerts recorded yet.</div>';
+    return;
+  }
+  list.innerHTML = _alertLog.map(function(e) {
+    var icon = e.type === 'clear' ? '\u2705' : e.type === 'danger' ? '\u26a0' : '\u26a1';
+    return '<div class="alert-log-entry log-' + e.type + '">'
+      + '<div class="log-entry-time">' + e.time + '</div>'
+      + '<div class="log-entry-icon">' + icon + '</div>'
+      + '<div class="log-entry-body">'
+      + '<div class="log-entry-title">' + e.title + '</div>'
+      + (e.detail ? '<div class="log-entry-detail">' + e.detail + '</div>' : '')
+      + '</div></div>';
+  }).join('');
+}
+
+function clearAlertLog() {
+  _alertLog = [];
+  renderAlertLog();
+}
+
+function renderActiveAlerts(data) {
+  var list = document.getElementById('activeAlertsList');
+  if (!list) return;
+
+  var cards = [];
+
+  function makeCard(sev, icon, param, title, valueStr, action, since) {
+    return '<div class="active-alert-card sev-' + sev + '">'
+      + '<div class="active-alert-card-header">'
+      + '<div class="active-alert-card-icon">' + icon + '</div>'
+      + '<div><div class="active-alert-card-param">' + param + '</div>'
+      + '<div class="active-alert-card-title">' + title + '</div></div></div>'
+      + '<div class="active-alert-card-value">' + valueStr + '</div>'
+      + '<div class="active-alert-card-action">' + action + '</div>'
+      + (since ? '<div class="active-alert-card-since">Since ' + since + '</div>' : '')
+      + '</div>';
+  }
+
+  if (data.alertTempState >= 1 && data.dhtConnected) {
+    var sev = data.alertTempState === 2 ? 'danger' : 'warning';
+    var adv = data.tempAdvice || {};
+    cards.push(makeCard(sev, '\u{1F321}', 'Temperature',
+      adv.title || '', data.temperature.toFixed(1) + '\u00b0C',
+      adv.action || '', data.alertTempState === 2 ? _dangerTriggeredAt : null));
+  }
+  if (data.alertHumState >= 1 && data.dhtConnected) {
+    var sev = data.alertHumState === 2 ? 'danger' : 'warning';
+    var adv = data.humAdvice || {};
+    cards.push(makeCard(sev, '\u{1F4A7}', 'Humidity',
+      adv.title || '', data.humidity.toFixed(0) + '%',
+      adv.action || '', data.alertHumState === 2 ? _dangerTriggeredAt : null));
+  }
+  if (data.alertGasState >= 1 && data.gasConnected) {
+    var sev = data.alertGasState === 2 ? 'danger' : 'warning';
+    var adv = data.gasAdvice || {};
+    cards.push(makeCard(sev, '\u{1F33F}', 'Air Quality',
+      adv.title || '', data.gas.toFixed(0) + ' ppm',
+      adv.action || '', data.alertGasState === 2 ? _dangerTriggeredAt : null));
+  }
+
+  if (cards.length === 0) {
+    list.innerHTML = '<div class="no-alerts-msg">\u2713 All parameters are within safe range.</div>';
+  } else {
+    list.innerHTML = cards.join('');
+  }
+}
+
+// Request browser notification permission once on load
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+function fireBrowserNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body: body, icon: '' });
+  }
+}
+
+function updateDangerBanner(data, time) {
+  var banner = document.getElementById('dangerBanner');
+  var bTitle = document.getElementById('dangerBannerTitle');
+  var bDetail = document.getElementById('dangerBannerDetail');
+  var bTime  = document.getElementById('dangerBannerTime');
+
+  // Collect danger parameters
+  var dangers = [];
+  if (data.alertTempState === 2 && data.dhtConnected)
+    dangers.push('Temp ' + data.temperature.toFixed(1) + '\u00b0C');
+  if (data.alertHumState === 2 && data.dhtConnected)
+    dangers.push('Humidity ' + data.humidity.toFixed(0) + '%');
+  if (data.alertGasState === 2 && data.gasConnected)
+    dangers.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+
+  var isDanger  = dangers.length > 0;
+  var isWarning = !isDanger && (data.alertLevel > 0);
+
+  // Update tab badge
+  var badge = document.getElementById('alertBadge');
+  if (isDanger) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = dangers.length;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  if (isDanger) {
+    banner.style.display = 'flex';
+    bTitle.textContent  = '\u26a0\ufe0f ' + (dangers.length === 1 ? 'Danger Detected' : dangers.length + ' Danger Conditions Active');
+    bDetail.textContent = dangers.join('  \u2022  ');
+
+    if (_lastAlertLevel < 2) {
+      _dangerTriggeredAt = time;
+      var notifBody = [];
+      if (data.tempAdvice  && data.alertTempState === 2) notifBody.push(data.tempAdvice.action);
+      if (data.humAdvice   && data.alertHumState  === 2) notifBody.push(data.humAdvice.action);
+      if (data.gasAdvice   && data.alertGasState  === 2) notifBody.push(data.gasAdvice.action);
+      fireBrowserNotification('AtmosSense \u2014 Danger Alert', notifBody.join('\n'));
+      addLogEntry('danger',
+        (dangers.length === 1 ? 'Danger: ' : 'Multiple Dangers: ') + dangers.join(', '),
+        notifBody.join(' | '));
+    }
+    bTime.textContent = 'Since ' + _dangerTriggeredAt;
+
+  } else {
+    banner.style.display = 'none';
+    if (_lastAlertLevel === 2) {
+      // Danger just cleared
+      _dangerTriggeredAt = null;
+      addLogEntry('clear', 'All Clear \u2014 Conditions back to normal', 'All parameters returned to safe range.');
+    } else if (isWarning && _lastAlertLevel === 0) {
+      // New warning
+      var warns = [];
+      if (data.alertTempState === 1 && data.dhtConnected) warns.push('Temperature ' + data.temperature.toFixed(1) + '\u00b0C');
+      if (data.alertHumState  === 1 && data.dhtConnected) warns.push('Humidity ' + data.humidity.toFixed(0) + '%');
+      if (data.alertGasState  === 1 && data.gasConnected) warns.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+      if (warns.length) addLogEntry('warning', 'Warning: ' + warns.join(', '), '');
+    }
+  }
+
+  _lastAlertLevel = isDanger ? 2 : (isWarning ? 1 : 0);
+
+  // Always update active alerts panel
+  renderActiveAlerts(data);
+}
+
 function updateData() {
   fetch('/data')
     .then(r => r.json())
@@ -280,7 +468,7 @@ function updateData() {
     var time = new Date().toLocaleTimeString();
     var gas  = data.gas || 0;
 
-    // Show warmup banner until DHT is ready
+    // Show warmup banner until sensor is ready
     var banner = document.getElementById('warmupBanner');
     if (!data.ready) {
       banner.style.display = 'flex';
@@ -288,9 +476,11 @@ function updateData() {
     }
     banner.style.display = 'none';
 
-    // ── Alert bar ─────────────────────────────────────────────────────────────
-    // Per-parameter alert boxes
+    // ── Alert panels ──────────────────────────────────────────────────────────
     updateParamAlerts(data);
+
+    // ── Danger banner ─────────────────────────────────────────────────────────
+    updateDangerBanner(data, time);
 
     // Show/hide sensor-not-detected overlays per sensor
     var dhtOk = data.dhtConnected !== false;

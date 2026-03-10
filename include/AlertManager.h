@@ -6,19 +6,19 @@
 #define LED_RED    27
 
 // ── Fixed universal indoor comfort thresholds ────────────────────────────────
-// Temperature (°C)
-#define TEMP_SAFE_LO    18.0f
-#define TEMP_SAFE_HI    26.0f
-#define TEMP_WARN_LO    15.0f
-#define TEMP_WARN_HI    30.0f
+// Temperature (°C) — heat index based, raw fallback only
+#define TEMP_SAFE_LO    20.0f
+#define TEMP_SAFE_HI    28.0f
+#define TEMP_WARN_LO    16.0f   // below this → danger
+#define TEMP_WARN_HI    32.0f   // above this → danger
 // Humidity (%)
-#define HUM_SAFE_LO     30.0f
+#define HUM_SAFE_LO     40.0f
 #define HUM_SAFE_HI     60.0f
-#define HUM_WARN_LO     20.0f
+#define HUM_WARN_LO     30.0f
 #define HUM_WARN_HI     70.0f
 // Gas ppm (CO2-equivalent)
-#define GAS_SAFE_PPM    1000.0f
-#define GAS_DANGER_PPM  2000.0f
+#define GAS_SAFE_PPM     800.0f
+#define GAS_DANGER_PPM  1200.0f
 
 typedef enum {
     ALERT_NONE    = 0,  // All sensors safe        → Green

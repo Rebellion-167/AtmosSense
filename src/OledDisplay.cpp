@@ -27,6 +27,13 @@ static int   _tempState   = -1;
 static int   _humState    = -1;
 static int   _gasState    = -1;
 
+// ── Alert page state ──────────────────────────────────────────────────────────
+static bool          _dangerActive  = false;  // currently showing danger page
+static uint8_t       _savedPage     = 0;      // page to return to after danger clears
+static unsigned long _flashTimer    = 0;
+static bool          _flashInvert   = false;
+#define FLASH_INTERVAL_MS  500
+
 // ── Page + button state ───────────────────────────────────────────────────────
 static uint8_t       _page       = 0;
 static bool          _inStatus   = false;
@@ -47,7 +54,14 @@ static void printRight(const char* s, int y, uint8_t size) {
     _disp.print(s);
 }
 
-static void drawDots() {
+static void drawDots(bool danger = false) {
+    // During danger show a flashing ! instead of page dots
+    if (danger) {
+        _disp.setTextSize(1);
+        _disp.setCursor(SCREEN_W - 6, 0);
+        _disp.print("!");
+        return;
+    }
     for (int i = 0; i < OLED_PAGES; i++) {
         int cx = SCREEN_W - 4 - (OLED_PAGES - 1 - i) * 7;
         if (i == _page) _disp.fillCircle(cx, 4, 2, SSD1306_WHITE);
@@ -64,8 +78,66 @@ static const char* stateStr(int state) {
     }
 }
 
+// ── Danger alert page — inverted, impossible to miss ─────────────────────────
+static void drawPageDanger() {
+    // Alternate between inverted and normal to flash the screen
+    bool inv = _flashInvert;
+    _disp.clearDisplay();
+
+    if (inv) {
+        // Fill entire screen white — inverted look
+        _disp.fillRect(0, 0, SCREEN_W, SCREEN_H, SSD1306_WHITE);
+        _disp.setTextColor(SSD1306_BLACK);
+    } else {
+        _disp.setTextColor(SSD1306_WHITE);
+    }
+
+    // "! DANGER !" header — size 2, centred
+    _disp.setTextSize(2);
+    _disp.setCursor(4, 2);
+    _disp.print("! DANGER !");
+
+    // Divider
+    if (inv) _disp.drawFastHLine(0, 20, SCREEN_W, SSD1306_BLACK);
+    else     _disp.drawFastHLine(0, 20, SCREEN_W, SSD1306_WHITE);
+
+    // Which parameter(s) — list each in danger
+    _disp.setTextSize(1);
+    int y = 24;
+    char buf[24];
+
+    if (_tempState == 2 && !isnan(_temp)) {
+        snprintf(buf, sizeof(buf), "Temp: %.1fC", _temp);
+        _disp.setCursor(0, y); _disp.print(buf); y += 10;
+    }
+    if (_humState == 2 && !isnan(_hum)) {
+        snprintf(buf, sizeof(buf), "Humidity: %.0f%%", _hum);
+        _disp.setCursor(0, y); _disp.print(buf); y += 10;
+    }
+    if (_gasState == 2 && _gas > 0) {
+        snprintf(buf, sizeof(buf), "Air: %.0fppm", _gas);
+        _disp.setCursor(0, y); _disp.print(buf); y += 10;
+    }
+
+    // Bottom — action prompt
+    if (inv) _disp.drawFastHLine(0, 54, SCREEN_W, SSD1306_BLACK);
+    else     _disp.drawFastHLine(0, 54, SCREEN_W, SSD1306_WHITE);
+    _disp.setTextSize(1);
+    _disp.setCursor(0, 56);
+    _disp.print("Check conditions now");
+
+    _disp.display();
+}
+
+// ── Warning stripe — shown on normal pages when any param is warning ──────────
+static void drawWarningStripe() {
+    // Draw a small "!" badge bottom-left to indicate something needs attention
+    _disp.setTextSize(1);
+    _disp.setCursor(0, 56);
+    _disp.print("[!] Warning active");
+}
+
 // ── Page 0 — Overview ─────────────────────────────────────────────────────────
-// Room name header + all three live readings
 static void drawPageOverview() {
     char buf[16];
 
@@ -76,7 +148,6 @@ static void drawPageOverview() {
     drawDots();
     hline(10);
 
-    // Temp
     _disp.setTextSize(1);
     _disp.setCursor(0, 14);
     _disp.print("Temp");
@@ -85,7 +156,6 @@ static void drawPageOverview() {
     printRight(buf, 13, 2);
     hline(32);
 
-    // Humidity
     _disp.setTextSize(1);
     _disp.setCursor(0, 35);
     _disp.print("Humidity");
@@ -94,12 +164,11 @@ static void drawPageOverview() {
     printRight(buf, 34, 2);
     hline(53);
 
-    // AQI
     _disp.setTextSize(1);
     _disp.setCursor(0, 56);
-    _disp.print("Air Quality");
-    if (_gas > 0) snprintf(buf, sizeof(buf), "AQI %d", _aqi);
-    else          snprintf(buf, sizeof(buf), "No sensor");
+    _disp.print("AQI");
+    if (_gas > 0) snprintf(buf, sizeof(buf), "%d", _aqi);
+    else          snprintf(buf, sizeof(buf), "--");
     printRight(buf, 56, 1);
 }
 
@@ -113,41 +182,32 @@ static void drawPageTemp() {
     drawDots();
     hline(10);
 
-    // Current reading — large
     if (!isnan(_temp)) snprintf(buf, sizeof(buf), "%.1fC", _temp);
     else               snprintf(buf, sizeof(buf), "--");
     _disp.setTextSize(2);
     _disp.setCursor(0, 13);
     _disp.print(buf);
 
-    // Status right-aligned next to reading
     _disp.setTextSize(1);
     printRight(stateStr(_tempState), 20, 1);
-
     hline(32);
 
-    // Feels like
     _disp.setTextSize(1);
     _disp.setCursor(0, 35);
-    _disp.print("Feels like");
-    if (!isnan(_feelsLike)) snprintf(buf, sizeof(buf), "%.1fC", _feelsLike);
-    else                    snprintf(buf, sizeof(buf), "--");
-    printRight(buf, 35, 1);
-
-    // Comfort label
-    _disp.setCursor(0, 45);
     _disp.print(_comfort);
 
-    hline(54);
+    hline(44);
 
-    // Min / Max
-    _disp.setCursor(0, 56);
+    _disp.setCursor(0, 47);
     if (!isnan(_minTemp)) snprintf(buf, sizeof(buf), "Lo:%.1fC", _minTemp);
     else                  snprintf(buf, sizeof(buf), "Lo:--");
     _disp.print(buf);
     if (!isnan(_maxTemp)) snprintf(buf, sizeof(buf), "Hi:%.1fC", _maxTemp);
     else                  snprintf(buf, sizeof(buf), "Hi:--");
-    printRight(buf, 56, 1);
+    printRight(buf, 47, 1);
+
+    // Warning stripe if not normal
+    if (_tempState == 1) { hline(56); drawWarningStripe(); }
 }
 
 // ── Page 2 — Humidity detail ──────────────────────────────────────────────────
@@ -160,36 +220,30 @@ static void drawPageHum() {
     drawDots();
     hline(10);
 
-    // Current reading — large
     if (!isnan(_hum)) snprintf(buf, sizeof(buf), "%.1f%%", _hum);
     else              snprintf(buf, sizeof(buf), "--");
     _disp.setTextSize(2);
     _disp.setCursor(0, 13);
     _disp.print(buf);
 
-    // Status right-aligned
     _disp.setTextSize(1);
     printRight(stateStr(_humState), 20, 1);
-
     hline(32);
 
-    // Ideal range reminder
     _disp.setTextSize(1);
     _disp.setCursor(0, 35);
-    _disp.print("Ideal: 30-60%");
-
+    _disp.print("Ideal: 40-60%");
     hline(44);
 
-    // Min / Max
     _disp.setCursor(0, 47);
-    if (!isnan(_minHum)) snprintf(buf, sizeof(buf), "Lo: %.1f%%", _minHum);
-    else                 snprintf(buf, sizeof(buf), "Lo: --");
+    if (!isnan(_minHum)) snprintf(buf, sizeof(buf), "Lo:%.1f%%", _minHum);
+    else                 snprintf(buf, sizeof(buf), "Lo:--");
     _disp.print(buf);
+    if (!isnan(_maxHum)) snprintf(buf, sizeof(buf), "Hi:%.1f%%", _maxHum);
+    else                 snprintf(buf, sizeof(buf), "Hi:--");
+    printRight(buf, 47, 1);
 
-    _disp.setCursor(0, 56);
-    if (!isnan(_maxHum)) snprintf(buf, sizeof(buf), "Hi: %.1f%%", _maxHum);
-    else                 snprintf(buf, sizeof(buf), "Hi: --");
-    _disp.print(buf);
+    if (_humState == 1) { hline(56); drawWarningStripe(); }
 }
 
 // ── Page 3 — Air Quality detail ───────────────────────────────────────────────
@@ -203,51 +257,53 @@ static void drawPageGas() {
     hline(10);
 
     if (_gas <= 0) {
-        _disp.setTextSize(1);
-        _disp.setCursor(0, 28);
-        _disp.print("Sensor not");
-        _disp.setCursor(0, 40);
-        _disp.print("connected");
+        _disp.setCursor(0, 28); _disp.print("Sensor not");
+        _disp.setCursor(0, 40); _disp.print("connected");
         return;
     }
 
-    // Current PPM — large
     snprintf(buf, sizeof(buf), "%.0fppm", _gas);
     _disp.setTextSize(2);
     _disp.setCursor(0, 13);
     _disp.print(buf);
 
-    // Status right-aligned
     _disp.setTextSize(1);
     printRight(stateStr(_gasState), 20, 1);
-
     hline(32);
 
-    // AQI
     _disp.setTextSize(1);
     _disp.setCursor(0, 35);
-    _disp.print("Indoor AQI");
+    _disp.print("AQI:");
     snprintf(buf, sizeof(buf), "%d", _aqi);
     printRight(buf, 35, 1);
-
     hline(44);
 
-    // Min / Max
     _disp.setCursor(0, 47);
-    if (_minGas > 0) snprintf(buf, sizeof(buf), "Lo: %.0fppm", _minGas);
-    else             snprintf(buf, sizeof(buf), "Lo: --");
+    if (_minGas > 0) snprintf(buf, sizeof(buf), "Lo:%.0fppm", _minGas);
+    else             snprintf(buf, sizeof(buf), "Lo:--");
     _disp.print(buf);
+    if (_maxGas > 0) snprintf(buf, sizeof(buf), "Hi:%.0fppm", _maxGas);
+    else             snprintf(buf, sizeof(buf), "Hi:--");
+    printRight(buf, 47, 1);
 
-    _disp.setCursor(0, 56);
-    if (_maxGas > 0) snprintf(buf, sizeof(buf), "Hi: %.0fppm", _maxGas);
-    else             snprintf(buf, sizeof(buf), "Hi: --");
-    _disp.print(buf);
+    if (_gasState == 1) { hline(56); drawWarningStripe(); }
 }
 
-// ── Redraw current page ───────────────────────────────────────────────────────
+// ── Check if any parameter is in danger ───────────────────────────────────────
+static bool anyDanger() {
+    return (_tempState == 2 || _humState == 2 || _gasState == 2);
+}
+
+// ── Redraw dispatcher ─────────────────────────────────────────────────────────
 static void redraw() {
     _disp.clearDisplay();
     _disp.setTextColor(SSD1306_WHITE);
+
+    if (_dangerActive) {
+        drawPageDanger();
+        return;
+    }
+
     switch (_page) {
         case 0: drawPageOverview(); break;
         case 1: drawPageTemp();     break;
@@ -265,7 +321,6 @@ void oledBegin() {
         return;
     }
     _ready = true;
-
     pinMode(OLED_BTN_PIN, INPUT_PULLUP);
 
     _disp.clearDisplay();
@@ -288,9 +343,9 @@ void oledSetData(const char* room,
                  float minGas,   float maxGas,
                  int   tempState, int humState, int gasState)
 {
-    strncpy(_room,    room ? room : "Room",               sizeof(_room)    - 1);
-    strncpy(_comfort, comfortLabel ? comfortLabel : "--",  sizeof(_comfort) - 1);
-    _temp = temp;  _hum = hum;  _gas = gas;
+    strncpy(_room,    room          ? room          : "Room", sizeof(_room)    - 1);
+    strncpy(_comfort, comfortLabel  ? comfortLabel  : "--",   sizeof(_comfort) - 1);
+    _temp = temp; _hum = hum; _gas = gas;
     _feelsLike = feelsLike;
     _aqi = aqi;
     _minTemp = minTemp; _maxTemp = maxTemp;
@@ -298,28 +353,58 @@ void oledSetData(const char* room,
     _minGas  = minGas;  _maxGas  = maxGas;
     _tempState = tempState; _humState = humState; _gasState = gasState;
 
-    if (_ready) {
-        _inStatus = false;  // real data has arrived — leave boot messages behind
-        redraw();
+    if (!_ready) return;
+    _inStatus = false;
+
+    bool danger = anyDanger();
+
+    if (danger && !_dangerActive) {
+        // Danger just triggered — save page and switch to alert page
+        _savedPage   = _page;
+        _dangerActive = true;
+        _flashTimer  = millis();
+        _flashInvert = false;
+        Serial.println("[OLED] DANGER — switching to alert page");
+    } else if (!danger && _dangerActive) {
+        // Danger cleared — return to saved page
+        _dangerActive = false;
+        _page = _savedPage;
+        Serial.println("[OLED] Danger cleared — returning to normal page");
     }
+
+    redraw();
 }
 
 void oledTick() {
     if (!_ready) return;
 
+    // Flash the danger page
+    if (_dangerActive && millis() - _flashTimer >= FLASH_INTERVAL_MS) {
+        _flashTimer  = millis();
+        _flashInvert = !_flashInvert;
+        drawPageDanger();  // redraw with toggled invert
+    }
+
+    // Button handling
     bool btn = digitalRead(OLED_BTN_PIN);
 
-    // Falling edge — button pressed (active LOW with pull-up)
     if (_lastBtn == HIGH && btn == LOW) {
         _debounceMs = millis();
     }
 
-    // Confirm press after debounce window
     if (_lastBtn == LOW && btn == HIGH) {
         if (millis() - _debounceMs >= BTN_DEBOUNCE_MS) {
-            _inStatus = false;
-            _page = (_page + 1) % OLED_PAGES;
-            redraw();
+            if (_dangerActive) {
+                // Button during danger: temporarily show next info page
+                // but danger page will return on next oledSetData call
+                _page = (_savedPage + 1) % OLED_PAGES;
+                _savedPage = _page;
+                _dangerActive = false;   // suppress until next data update
+                redraw();
+            } else {
+                _page = (_page + 1) % OLED_PAGES;
+                redraw();
+            }
             Serial.printf("[OLED] Page -> %d\n", _page);
         }
     }
