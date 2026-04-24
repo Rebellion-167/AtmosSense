@@ -711,3 +711,5 @@ document.getElementById('roomNameInput').addEventListener('keydown', function(e)
 
 fetchRoomName();
 showModal();
+
+// Corrected code
