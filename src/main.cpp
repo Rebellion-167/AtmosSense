@@ -6,6 +6,7 @@
 
 #include "SensorReader.h"
 #include "SensorStats.h"
+#include "SensorHistory.h"
 #include "WebHandlers.h"
 #include "AlertManager.h"
 #include "WiFiManager.h"
@@ -48,20 +49,16 @@ void setup() {
     }
     Serial.println("SPIFFS mounted");
 
-    // Check if user is holding BOOT to reset WiFi
     checkResetButton();
 
     // Init OLED first — this calls Wire.begin(21,22) which the SHT30 also needs
     oledBegin();
 
-    // Non-blocking sensor warmup — SHT30 shares the Wire bus started above
     sensorBegin();
 
-    // Connect to WiFi — if no credentials, WiFiManager starts AP portal
     if (wifiHasCredentials()) oledStatus("Connecting...", "to WiFi");
     wifiManagerBegin();
     oledStatus("WiFi OK", WiFi.localIP().toString().c_str());
-    // Push IP into system page cache immediately
     oledSetSystem(WiFi.localIP().toString().c_str(), 0);
     delay(1500);
     oledStatus("Sensor warming up", "please wait...");
@@ -69,6 +66,7 @@ void setup() {
     configTime(0, 0, NTP_SERVER);
 
     statsBegin();
+    historyBegin();   // ← ring buffer init (after statsBegin, before routes)
     roomConfigBegin();
 
     registerRoutes(server);
@@ -82,7 +80,6 @@ void loop() {
     statsCheckMidnightReset();
     oledTick();
 
-    // Update uptime on system page every second
     static unsigned long _lastUptimeMs = 0;
     if (millis() - _lastUptimeMs >= 1000) {
         _lastUptimeMs = millis();

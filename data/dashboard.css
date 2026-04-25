@@ -8,7 +8,6 @@
 body {
   font-family: Arial, sans-serif;
   min-height: 100vh;
-  /* Warm indoor ambience: cream wall with window-light glow */
   background-color: #f5f0e8;
   background-image:
     radial-gradient(ellipse 70% 50% at 92% 0%, rgba(255, 220, 120, 0.28) 0%, transparent 65%),
@@ -17,21 +16,12 @@ body {
 }
 
 @keyframes dangerPulse {
-
-  0%,
-  100% {
-    box-shadow: 0 2px 12px rgba(231, 76, 60, 0.15);
-  }
-
-  50% {
-    box-shadow: 0 2px 24px rgba(231, 76, 60, 0.45);
-  }
+  0%, 100% { box-shadow: 0 2px 12px rgba(231, 76, 60, 0.15); }
+  50%       { box-shadow: 0 2px 24px rgba(231, 76, 60, 0.45); }
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* ── Modal ───────────────────────────────────────────────────────────────── */
@@ -189,7 +179,6 @@ body {
   padding: 20px 28px 24px;
 }
 
-/* Banner room row */
 .banner-header {
   display: flex;
   align-items: center;
@@ -326,21 +315,10 @@ body {
   color: #2c3e50;
 }
 
-.alert-panel.state-normal .alert-panel-reading {
-  color: #1e8449;
-}
-
-.alert-panel.state-warning .alert-panel-reading {
-  color: #b7770d;
-}
-
-.alert-panel.state-danger .alert-panel-reading {
-  color: #c0392b;
-}
-
-.alert-panel.state-unknown .alert-panel-reading {
-  color: #aaa;
-}
+.alert-panel.state-normal  .alert-panel-reading { color: #1e8449; }
+.alert-panel.state-warning .alert-panel-reading { color: #b7770d; }
+.alert-panel.state-danger  .alert-panel-reading { color: #c0392b; }
+.alert-panel.state-unknown .alert-panel-reading { color: #aaa;    }
 
 .alert-panel-title {
   font-size: 14px;
@@ -348,21 +326,10 @@ body {
   margin-top: 2px;
 }
 
-.alert-panel.state-normal .alert-panel-title {
-  color: #1e8449;
-}
-
-.alert-panel.state-warning .alert-panel-title {
-  color: #b7770d;
-}
-
-.alert-panel.state-danger .alert-panel-title {
-  color: #c0392b;
-}
-
-.alert-panel.state-unknown .alert-panel-title {
-  color: #95a5a6;
-}
+.alert-panel.state-normal  .alert-panel-title { color: #1e8449; }
+.alert-panel.state-warning .alert-panel-title { color: #b7770d; }
+.alert-panel.state-danger  .alert-panel-title { color: #c0392b; }
+.alert-panel.state-unknown .alert-panel-title { color: #95a5a6; }
 
 .alert-panel-action {
   font-size: 12px;
@@ -371,14 +338,8 @@ body {
   color: #555;
 }
 
-.alert-panel.state-danger .alert-panel-action {
-  color: #922b21;
-  font-weight: bold;
-}
-
-.alert-panel.state-unknown .alert-panel-action {
-  color: #aaa;
-}
+.alert-panel.state-danger  .alert-panel-action { color: #922b21; font-weight: bold; }
+.alert-panel.state-unknown .alert-panel-action { color: #aaa; }
 
 /* ── Secondary section ───────────────────────────────────────────────────── */
 .secondary-section {
@@ -387,7 +348,7 @@ body {
   margin: 0 auto;
 }
 
-/* Outside weather — centred */
+/* Outside weather */
 .outside-weather-wrap {
   display: flex;
   justify-content: center;
@@ -437,9 +398,7 @@ body {
   margin-left: 3px;
 }
 
-.weather-col {
-  text-align: center;
-}
+.weather-col    { text-align: center; }
 
 .weather-divider {
   width: 1px;
@@ -523,6 +482,9 @@ body {
   letter-spacing: 1px;
   margin-bottom: 8px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .chart-card .canvas-wrap {
@@ -557,28 +519,10 @@ body {
   gap: 5px;
 }
 
-.minmax-icon {
-  font-size: 14px;
-}
-
-.minmax-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #888;
-}
-
-.minmax-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-  margin-left: 2px;
-}
-
-.minmax-unit {
-  font-size: 12px;
-  color: #777;
-}
+.minmax-icon  { font-size: 14px; }
+.minmax-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+.minmax-value { font-size: 18px; font-weight: bold; color: #333; margin-left: 2px; }
+.minmax-unit  { font-size: 12px; color: #777; }
 
 .minmax-divider {
   width: 1px;
@@ -607,9 +551,7 @@ body {
   padding: 16px;
 }
 
-.sensor-overlay.visible {
-  display: flex;
-}
+.sensor-overlay.visible { display: flex; }
 
 /* ── AQI badge ───────────────────────────────────────────────────────────── */
 .aqi-row {
@@ -639,6 +581,22 @@ body {
   background: #ccc;
 }
 
+/* ── History buffer badge ────────────────────────────────────────────────── */
+.history-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  background: #eaf0fb;
+  border: 1.5px solid #b8cdf5;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #4a6fa5;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  text-transform: none;
+  white-space: nowrap;
+}
+
 /* ── Danger banner ───────────────────────────────────────────────────────── */
 .danger-banner {
   display: flex;
@@ -655,15 +613,8 @@ body {
 }
 
 @keyframes dangerBannerPulse {
-
-  0%,
-  100% {
-    background: #c0392b;
-  }
-
-  50% {
-    background: #e74c3c;
-  }
+  0%, 100% { background: #c0392b; }
+  50%       { background: #e74c3c; }
 }
 
 .danger-banner-icon {
@@ -673,20 +624,11 @@ body {
 }
 
 @keyframes dangerIconPulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.25);
-  }
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.25); }
 }
 
-.danger-banner-body {
-  flex: 1;
-}
+.danger-banner-body  { flex: 1; }
 
 .danger-banner-title {
   font-size: 16px;
@@ -710,22 +652,11 @@ body {
 
 /* ── Alert panel danger flash ────────────────────────────────────────────── */
 @keyframes panelDangerFlash {
-
-  0%,
-  100% {
-    background: #fdf3f2;
-    border-color: #f5b7b1;
-  }
-
-  50% {
-    background: #fadbd8;
-    border-color: #c0392b;
-  }
+  0%, 100% { background: #fdf3f2; border-color: #f5b7b1; }
+  50%       { background: #fadbd8; border-color: #c0392b; }
 }
 
-.alert-panel.state-danger {
-  animation: panelDangerFlash 1.5s infinite;
-}
+.alert-panel.state-danger { animation: panelDangerFlash 1.5s infinite; }
 
 /* ── Tab navigation ──────────────────────────────────────────────────────── */
 .tab-nav {
@@ -754,14 +685,8 @@ body {
   font-family: Arial, sans-serif;
 }
 
-.tab-btn:hover {
-  color: #4a90e2;
-}
-
-.tab-btn.active {
-  color: #2c3e50;
-  border-bottom-color: #4a90e2;
-}
+.tab-btn:hover  { color: #4a90e2; }
+.tab-btn.active { color: #2c3e50; border-bottom-color: #4a90e2; }
 
 .tab-badge {
   display: inline-flex;
@@ -778,13 +703,8 @@ body {
   vertical-align: middle;
 }
 
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-}
+.tab-content        { display: none; }
+.tab-content.active { display: block; }
 
 /* ── Danger banner — View Alerts button ─────────────────────────────────── */
 .danger-banner-right {
@@ -808,9 +728,7 @@ body {
   transition: background 0.2s;
 }
 
-.danger-banner-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
+.danger-banner-btn:hover { background: rgba(255, 255, 255, 0.35); }
 
 /* ── Alerts tab content ──────────────────────────────────────────────────── */
 .alerts-section-title {
@@ -839,10 +757,7 @@ body {
   transition: border-color 0.2s, color 0.2s;
 }
 
-.clear-log-btn:hover {
-  border-color: #e74c3c;
-  color: #e74c3c;
-}
+.clear-log-btn:hover { border-color: #e74c3c; color: #e74c3c; }
 
 /* Active alerts list */
 .active-alerts-list {
@@ -867,16 +782,8 @@ body {
   border: 2px solid;
 }
 
-.active-alert-card.sev-warning {
-  background: #fffbf3;
-  border-color: #f9e29f;
-}
-
-.active-alert-card.sev-danger {
-  background: #fdf3f2;
-  border-color: #f5b7b1;
-  animation: panelDangerFlash 1.5s infinite;
-}
+.active-alert-card.sev-warning { background: #fffbf3; border-color: #f9e29f; }
+.active-alert-card.sev-danger  { background: #fdf3f2; border-color: #f5b7b1; animation: panelDangerFlash 1.5s infinite; }
 
 .active-alert-card-header {
   display: flex;
@@ -885,9 +792,7 @@ body {
   margin-bottom: 8px;
 }
 
-.active-alert-card-icon {
-  font-size: 22px;
-}
+.active-alert-card-icon  { font-size: 22px; }
 
 .active-alert-card-param {
   font-size: 12px;
@@ -897,49 +802,21 @@ body {
   color: #95a5a6;
 }
 
-.active-alert-card-title {
-  font-size: 16px;
-  font-weight: bold;
-}
+.active-alert-card-title { font-size: 16px; font-weight: bold; }
 
-.active-alert-card.sev-warning .active-alert-card-title {
-  color: #b7770d;
-}
+.active-alert-card.sev-warning .active-alert-card-title { color: #b7770d; }
+.active-alert-card.sev-danger  .active-alert-card-title { color: #c0392b; }
 
-.active-alert-card.sev-danger .active-alert-card-title {
-  color: #c0392b;
-}
+.active-alert-card-value { font-size: 26px; font-weight: bold; margin-bottom: 4px; }
 
-.active-alert-card-value {
-  font-size: 26px;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
+.active-alert-card.sev-warning .active-alert-card-value { color: #b7770d; }
+.active-alert-card.sev-danger  .active-alert-card-value { color: #c0392b; }
 
-.active-alert-card.sev-warning .active-alert-card-value {
-  color: #b7770d;
-}
+.active-alert-card-action { font-size: 13px; color: #555; line-height: 1.5; }
 
-.active-alert-card.sev-danger .active-alert-card-value {
-  color: #c0392b;
-}
+.active-alert-card.sev-danger .active-alert-card-action { color: #922b21; font-weight: bold; }
 
-.active-alert-card-action {
-  font-size: 13px;
-  color: #555;
-  line-height: 1.5;
-}
-
-.active-alert-card.sev-danger .active-alert-card-action {
-  color: #922b21;
-  font-weight: bold;
-}
-
-.active-alert-card-since {
-  font-size: 11px;
-  color: #aaa;
-  margin-top: 6px;
-}
+.active-alert-card-since { font-size: 11px; color: #aaa; margin-top: 6px; }
 
 /* Alert history log */
 .alert-history-list {
@@ -960,17 +837,9 @@ body {
   border-left: 4px solid #e0e0e0;
 }
 
-.alert-log-entry.log-danger {
-  border-left-color: #e74c3c;
-}
-
-.alert-log-entry.log-warning {
-  border-left-color: #f39c12;
-}
-
-.alert-log-entry.log-clear {
-  border-left-color: #27ae60;
-}
+.alert-log-entry.log-danger  { border-left-color: #e74c3c; }
+.alert-log-entry.log-warning { border-left-color: #f39c12; }
+.alert-log-entry.log-clear   { border-left-color: #27ae60; }
 
 .log-entry-time {
   font-size: 11px;
@@ -980,24 +849,8 @@ body {
   padding-top: 2px;
 }
 
-.log-entry-body {
-  flex: 1;
-}
+.log-entry-body  { flex: 1; }
 
-.log-entry-title {
-  font-size: 13px;
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-.log-entry-detail {
-  font-size: 12px;
-  color: #777;
-  margin-top: 2px;
-  line-height: 1.4;
-}
-
-.log-entry-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
+.log-entry-title  { font-size: 13px; font-weight: bold; color: #2c3e50; }
+.log-entry-detail { font-size: 12px; color: #777; margin-top: 2px; line-height: 1.4; }
+.log-entry-icon   { font-size: 16px; flex-shrink: 0; }

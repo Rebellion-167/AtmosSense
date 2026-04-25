@@ -1,6 +1,7 @@
 #include "WebHandlers.h"
 #include "SensorReader.h"
 #include "SensorStats.h"
+#include "SensorHistory.h"
 #include "AqiConverter.h"
 #include "AlertManager.h"
 #include "OledDisplay.h"
@@ -48,6 +49,8 @@ static void handleData() {
     if (dhtReady) {
         statsUpdate(temp, hum, gas);
         alertUpdate(temp, hum, gas);
+        // Feed the ring buffer on every poll — historyTick throttles internally
+        historyTick(temp, dhtReady ? hum : -999.0f, gasReady ? gas : -999.0f);
     }
 
     float tDisplay  = dhtReady ? temp : 0.0f;
@@ -56,10 +59,8 @@ static void handleData() {
     int   aqi       = ppmToAqi(gasReady ? gas : 0);
     int   alertLvl  = (int)alertGetLevel();
 
-    // Plain ASCII only — no special chars that could corrupt JSON
     const char* reason = alertGetReason();
 
-    // Generate actionable advice per parameter
     RoomAdvice tAdv = adviceForTemp(dhtReady ? alertGetComfortLabel() : "Unknown");
     RoomAdvice hAdv = adviceForHumidity(dhtReady ? hum : -1.0f);
     RoomAdvice gAdv = adviceForGas(gasReady ? gas : -1.0f);
@@ -89,7 +90,8 @@ static void handleData() {
         "\"minHum\":%.1f,"
         "\"maxHum\":%.1f,"
         "\"minGas\":%.1f,"
-        "\"maxGas\":%.1f"
+        "\"maxGas\":%.1f,"
+        "\"historyCount\":%d"
         "}",
         warmedUp ? "true" : "false",
         dhtReady ? "true" : "false",
@@ -104,12 +106,12 @@ static void handleData() {
         gAdv.title, gAdv.action, gAdv.reason, gAdv.urgency,
         statsMinTemp(), statsMaxTemp(),
         statsMinHum(),  statsMaxHum(),
-        statsMinGas(),  statsMaxGas()
+        statsMinGas(),  statsMaxGas(),
+        historyCount()
     );
 
     _server->send(200, "application/json", json);
 
-    // Refresh OLED with all data on every poll
     if (dhtReady) {
         oledSetData(roomGetName(), temp, hum, gas,
                 alertGetFeelsLike(), alertGetComfortLabel(), aqi,
@@ -118,6 +120,20 @@ static void handleData() {
                 statsMinGas(),  statsMaxGas(),
                 alertGetTempState(), alertGetHumState(), alertGetGasState());
     }
+}
+
+// ── /history — returns full ring buffer as JSON ───────────────────────────────
+static void handleHistory() {
+    size_t maxBytes = historyJsonMaxBytes();
+    char*  buf      = (char*)malloc(maxBytes);
+    if (!buf) {
+        _server->send(503, "text/plain", "Out of memory");
+        return;
+    }
+
+    historyToJson(buf, maxBytes);
+    _server->send(200, "application/json", buf);
+    free(buf);
 }
 
 static void handleTimezone() {
@@ -137,7 +153,6 @@ static void handleTimezone() {
 }
 
 static void handleClimate() {
-    // city — store whenever provided
     if (_server->hasArg("city") && _server->arg("city").length() > 0) {
         strncpy(_city, _server->arg("city").c_str(), sizeof(_city) - 1);
         _city[sizeof(_city) - 1] = '\0';
@@ -147,7 +162,6 @@ static void handleClimate() {
     if (_server->hasArg("outsideTemp")) _outsideTemp = _server->arg("outsideTemp").toFloat();
     if (_server->hasArg("outsideHum"))  _outsideHum  = _server->arg("outsideHum").toFloat();
 
-    // Immediately refresh OLED with latest indoor readings + new city
     float t = readTemperature();
     float h = readHumidity();
     if (t != -999.0f && h != -999.0f) {
@@ -177,7 +191,6 @@ static void handleRoomNamePost() {
     name.trim();
     roomSetName(name.c_str());
 
-    // Update OLED header immediately
     float t = readTemperature();
     float h = readHumidity();
     if (t != -999.0f && h != -999.0f) {
@@ -198,6 +211,7 @@ void registerRoutes(WebServer& server) {
     server.on("/dashboard.css", handleCss);
     server.on("/dashboard.js",  handleJs);
     server.on("/data",          handleData);
+    server.on("/history",       HTTP_GET, handleHistory);
     server.on("/climate",       HTTP_POST, handleClimate);
     server.on("/timezone",      HTTP_POST, handleTimezone);
     server.on("/roomname",      HTTP_GET,  handleRoomNameGet);
