@@ -111,6 +111,9 @@
       &#9888; Alerts
       <span class="tab-badge" id="alertBadge" style="display:none;"></span>
     </button>
+    <button class="tab-btn" id="tabBtnHistory" onclick="switchTab('history')">
+      &#128203; History
+    </button>
   </nav>
 
   <!-- ── TAB: OVERVIEW ──────────────────────────────────────────────────────── -->
@@ -161,7 +164,6 @@
         <div class="chart-card">
           <div class="card-title">
             &#128200; Temperature History (°C)
-            <span class="history-badge" id="historyBadge" style="display:none;"></span>
           </div>
           <div class="canvas-wrap"><canvas id="tempChart"></canvas></div>
         </div>
@@ -233,6 +235,18 @@
         <div class="no-alerts-msg">No alerts recorded yet.</div>
       </div>
 
+    </div>
+  </div>
+
+  <div id="tabHistory" class="tab-content" style="display:none;">
+    <div class="secondary-section">
+      <div class="alerts-section-title">
+        Sensor Reading History
+        <button class="clear-log-btn" onclick="clearSensorHistory()">Clear</button>
+      </div>
+      <div id="sensorHistoryTable" class="sensor-history-wrap">
+        <div class="no-alerts-msg">No readings captured yet.</div>
+      </div>
     </div>
   </div>
 

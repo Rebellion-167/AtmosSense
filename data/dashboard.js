@@ -7,55 +7,55 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
 
   if (!_gaugeCache[canvasId]) {
     var rect = canvas.getBoundingClientRect();
-    canvas.width  = rect.width  || 300;
+    canvas.width = rect.width || 300;
     canvas.height = rect.height || 200;
     _gaugeCache[canvasId] = { w: canvas.width, h: canvas.height, ctx: canvas.getContext('2d') };
   }
-  var w   = _gaugeCache[canvasId].w;
-  var h   = _gaugeCache[canvasId].h;
+  var w = _gaugeCache[canvasId].w;
+  var h = _gaugeCache[canvasId].h;
   var ctx = _gaugeCache[canvasId].ctx;
 
   var cx = w / 2;
   var cy = h * 0.78;
-  var r  = Math.min(w * 0.42, cy * 0.88);
+  var r = Math.min(w * 0.42, cy * 0.88);
 
   ctx.clearRect(0, 0, w, h);
 
   var startAngle = Math.PI * 0.75;
-  var endAngle   = Math.PI * 2.25;
-  var totalArc   = endAngle - startAngle;
-  var arcWidth   = r * 0.18;
+  var endAngle = Math.PI * 2.25;
+  var totalArc = endAngle - startAngle;
+  var arcWidth = r * 0.18;
 
   ctx.beginPath();
   ctx.arc(cx, cy, r, startAngle, endAngle);
   ctx.strokeStyle = '#e0e0e0';
-  ctx.lineWidth   = arcWidth + 4;
-  ctx.lineCap     = 'butt';
+  ctx.lineWidth = arcWidth + 4;
+  ctx.lineCap = 'butt';
   ctx.stroke();
 
   var gapAngle = 0.018;
-  sectors.forEach(function(s) {
+  sectors.forEach(function (s) {
     var aStart = startAngle + ((s.lo - min) / (max - min)) * totalArc + gapAngle / 2;
-    var aEnd   = startAngle + ((s.hi - min) / (max - min)) * totalArc - gapAngle / 2;
+    var aEnd = startAngle + ((s.hi - min) / (max - min)) * totalArc - gapAngle / 2;
     if (aEnd <= aStart) return;
     ctx.beginPath();
     ctx.arc(cx, cy, r, aStart, aEnd);
     ctx.strokeStyle = s.color;
-    ctx.lineWidth   = arcWidth;
-    ctx.lineCap     = 'butt';
+    ctx.lineWidth = arcWidth;
+    ctx.lineCap = 'butt';
     ctx.stroke();
   });
 
-  var clampedVal  = Math.min(Math.max(value, min), max);
+  var clampedVal = Math.min(Math.max(value, min), max);
   var needleAngle = startAngle + ((clampedVal - min) / (max - min)) * totalArc;
-  var needleLen   = r - arcWidth - 6;
-  var baseW       = needleLen * 0.06;
+  var needleLen = r - arcWidth - 6;
+  var baseW = needleLen * 0.06;
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(needleAngle);
   ctx.beginPath();
-  ctx.moveTo(0,  baseW);
+  ctx.moveTo(0, baseW);
   ctx.lineTo(needleLen, 0);
   ctx.lineTo(0, -baseW);
   ctx.closePath();
@@ -69,8 +69,8 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
   ctx.fill();
 
   var labelFont = Math.round(r * 0.16) + 'px Arial';
-  ctx.fillStyle  = '#999';
-  ctx.font       = labelFont;
+  ctx.fillStyle = '#999';
+  ctx.font = labelFont;
   ctx.textBaseline = 'middle';
 
   var labelR = r + arcWidth * 0.8;
@@ -90,7 +90,7 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
 
 // Sector definitions
 var tempSectors = [
-  { color: '#1a237e', lo: 0,  hi: 10 },
+  { color: '#1a237e', lo: 0, hi: 10 },
   { color: '#4fc3f7', lo: 10, hi: 18 },
   { color: '#2ecc71', lo: 18, hi: 24 },
   { color: '#f9e04b', lo: 24, hi: 28 },
@@ -98,31 +98,31 @@ var tempSectors = [
   { color: '#c0392b', lo: 35, hi: 50 }
 ];
 var humSectors = [
-  { color: '#c0392b', lo: 0,  hi: 20  },
-  { color: '#e67e22', lo: 20, hi: 30  },
-  { color: '#2ecc71', lo: 30, hi: 60  },
-  { color: '#4fc3f7', lo: 60, hi: 70  },
+  { color: '#c0392b', lo: 0, hi: 20 },
+  { color: '#e67e22', lo: 20, hi: 30 },
+  { color: '#2ecc71', lo: 30, hi: 60 },
+  { color: '#4fc3f7', lo: 60, hi: 70 },
   { color: '#1a237e', lo: 70, hi: 100 }
 ];
 var gasSectors = [
-  { color: '#2ecc71', lo: 0,    hi: 400  },
-  { color: '#f39c12', lo: 400,  hi: 1000 },
+  { color: '#2ecc71', lo: 0, hi: 400 },
+  { color: '#f39c12', lo: 400, hi: 1000 },
   { color: '#e67e22', lo: 1000, hi: 2000 }
 ];
 
 // ── Live clock ─────────────────────────────────────────────────────────────────
 var _tzOffsetSeconds = null;
-var _currentCity     = '';
+var _currentCity = '';
 
 function getLocationTime() {
   if (_tzOffsetSeconds === null) return '--:--:--';
-  var utcMs   = Date.now() + (new Date().getTimezoneOffset() * 60000);
+  var utcMs = Date.now() + (new Date().getTimezoneOffset() * 60000);
   var localMs = utcMs + (_tzOffsetSeconds * 1000);
   var d = new Date(localMs);
   return d.toLocaleTimeString('en-GB');
 }
 
-setInterval(function() {
+setInterval(function () {
   document.getElementById('clockTime').textContent = getLocationTime();
 }, 1000);
 
@@ -158,22 +158,22 @@ function humDesc(h) {
   return 'Mold and dust-mite risk. Use dehumidifier or ventilate.';
 }
 function gasLabel(g) {
-  if (g <= 0)   return '&#128268; Sensor not connected';
-  if (g < 400)  return '&#127807; Fresh Air';
+  if (g <= 0) return '&#128268; Sensor not connected';
+  if (g < 400) return '&#127807; Fresh Air';
   if (g < 1000) return '&#9989; Normal';
   if (g < 2000) return '&#128168; Poor Air Quality';
   return '&#9763; Very Poor Air Quality';
 }
 function gasDesc(g) {
-  if (g <= 0)   return 'MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.';
-  if (g < 400)  return 'Excellent air quality. Better than typical indoor air.';
+  if (g <= 0) return 'MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.';
+  if (g < 400) return 'Excellent air quality. Better than typical indoor air.';
   if (g < 1000) return 'Normal indoor air quality. No action needed.';
   if (g < 2000) return 'Air quality is poor. Open windows and ventilate the room.';
   return 'Dangerous air quality. Ventilate immediately.';
 }
 function aqiColor(aqi) {
-  if (aqi < 0)    return '#aaa';
-  if (aqi <= 50)  return '#2ecc71';
+  if (aqi < 0) return '#aaa';
+  if (aqi <= 50) return '#2ecc71';
   if (aqi <= 100) return '#f39c12';
   if (aqi <= 150) return '#e67e22';
   if (aqi <= 200) return '#e74c3c';
@@ -181,8 +181,8 @@ function aqiColor(aqi) {
   return '#7f0000';
 }
 function aqiText(aqi) {
-  if (aqi < 0)    return null;
-  if (aqi <= 50)  return 'Good';
+  if (aqi < 0) return null;
+  if (aqi <= 50) return 'Good';
   if (aqi <= 100) return 'Moderate';
   if (aqi <= 150) return 'Unhealthy for Some';
   if (aqi <= 200) return 'Unhealthy';
@@ -195,12 +195,12 @@ var chartOpts = { responsive: true, maintainAspectRatio: false, animation: false
 
 const tempChart = new Chart(document.getElementById('tempChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [], borderColor: 'red',      borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
+  data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [], borderColor: 'red', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 50 } } })
 });
 const humChart = new Chart(document.getElementById('humChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Humidity (%)',     data: [], borderColor: 'blue',     borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
+  data: { labels: [], datasets: [{ label: 'Humidity (%)', data: [], borderColor: 'blue', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 100 } } })
 });
 const gasChart = new Chart(document.getElementById('gasChart'), {
@@ -210,8 +210,8 @@ const gasChart = new Chart(document.getElementById('gasChart'), {
 });
 
 // ── Ring buffer history ────────────────────────────────────────────────────────
-var _historyLoaded  = false;   // true once we've fetched the full history
-var _historyCount   = 0;       // last known count from /data
+var _historyLoaded = false;   // true once we've fetched the full history
+var _historyCount = 0;       // last known count from /data
 
 // Format a Unix timestamp to a short readable time label
 function fmtTime(unixSec) {
@@ -222,38 +222,38 @@ function fmtTime(unixSec) {
 // Load full history from /history and populate charts (called once on startup)
 function loadHistory() {
   fetch('/history')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
       var entries = data.history || [];
       if (entries.length === 0) return;
 
       var tempLabels = [], tempVals = [];
-      var humLabels  = [], humVals  = [];
-      var gasLabels  = [], gasVals  = [];
+      var humLabels = [], humVals = [];
+      var gasLabels = [], gasVals = [];
 
-      entries.forEach(function(e) {
+      entries.forEach(function (e) {
         var lbl = fmtTime(e.t);
         if (e.temp !== -999) { tempLabels.push(lbl); tempVals.push(e.temp); }
-        if (e.hum  !== -999) { humLabels.push(lbl);  humVals.push(e.hum);   }
-        if (e.gas  !== -999) { gasLabels.push(lbl);  gasVals.push(e.gas);   }
+        if (e.hum !== -999) { humLabels.push(lbl); humVals.push(e.hum); }
+        if (e.gas !== -999) { gasLabels.push(lbl); gasVals.push(e.gas); }
       });
 
       tempChart.data.labels = tempLabels; tempChart.data.datasets[0].data = tempVals;
-      humChart.data.labels  = humLabels;  humChart.data.datasets[0].data  = humVals;
-      gasChart.data.labels  = gasLabels;  gasChart.data.datasets[0].data  = gasVals;
+      humChart.data.labels = humLabels; humChart.data.datasets[0].data = humVals;
+      gasChart.data.labels = gasLabels; gasChart.data.datasets[0].data = gasVals;
 
       tempChart.update('none');
       humChart.update('none');
       gasChart.update('none');
 
       _historyLoaded = true;
-      _historyCount  = entries.length;
+      _historyCount = entries.length;
 
       // Update history status badge
       updateHistoryBadge(data.count, data.interval);
       console.log('[History] Loaded ' + entries.length + ' entries from ring buffer');
     })
-    .catch(function(err) {
+    .catch(function (err) {
       console.warn('[History] Could not load history:', err);
       _historyLoaded = true; // don't block live updates
     });
@@ -276,8 +276,8 @@ function pushLiveReading(dhtOk, gasOk, temp, hum, gas) {
   }
 
   pushToChart(tempChart, dhtOk, temp);
-  pushToChart(humChart,  dhtOk, hum);
-  pushToChart(gasChart,  gasOk, gas);
+  pushToChart(humChart, dhtOk, hum);
+  pushToChart(gasChart, gasOk, gas);
 
   tempChart.update('none');
   humChart.update('none');
@@ -296,25 +296,25 @@ function updateHistoryBadge(count, intervalSec) {
 function updateMinMaxDisplay(data) {
   document.getElementById('minTemp').textContent = data.minTemp > 0 ? data.minTemp.toFixed(1) : '--';
   document.getElementById('maxTemp').textContent = data.maxTemp > 0 ? data.maxTemp.toFixed(1) : '--';
-  document.getElementById('minHum').textContent  = data.minHum  > 0 ? data.minHum.toFixed(1)  : '--';
-  document.getElementById('maxHum').textContent  = data.maxHum  > 0 ? data.maxHum.toFixed(1)  : '--';
-  document.getElementById('minGas').textContent  = data.minGas  > 0 ? Math.round(data.minGas) : '--';
-  document.getElementById('maxGas').textContent  = data.maxGas  > 0 ? Math.round(data.maxGas) : '--';
+  document.getElementById('minHum').textContent = data.minHum > 0 ? data.minHum.toFixed(1) : '--';
+  document.getElementById('maxHum').textContent = data.maxHum > 0 ? data.maxHum.toFixed(1) : '--';
+  document.getElementById('minGas').textContent = data.minGas > 0 ? Math.round(data.minGas) : '--';
+  document.getElementById('maxGas').textContent = data.maxGas > 0 ? Math.round(data.maxGas) : '--';
 }
 
 // ── Per-parameter alert boxes ──────────────────────────────────────────────────
 function updateParamAlerts(data) {
   function setPanel(boxId, statusId, actionId, state, title, action) {
     var box = document.getElementById(boxId);
-    var st  = document.getElementById(statusId);
-    var ac  = document.getElementById(actionId);
+    var st = document.getElementById(statusId);
+    var ac = document.getElementById(actionId);
     if (!box) return;
     box.className = 'alert-panel state-' + state;
     if (st) st.textContent = title;
     if (ac) {
       var ts = (state === 'danger' && _dangerTriggeredAt)
-               ? action + ' (since ' + _dangerTriggeredAt + ')'
-               : action;
+        ? action + ' (since ' + _dangerTriggeredAt + ')'
+        : action;
       ac.textContent = ts;
     }
   }
@@ -350,18 +350,19 @@ var dataInterval = null;
 // ── Danger banner + notifications ─────────────────────────────────────────────
 function switchTab(name) {
   document.getElementById('tabOverview').style.display = name === 'overview' ? 'block' : 'none';
-  document.getElementById('tabAlerts').style.display   = name === 'alerts'   ? 'block' : 'none';
+  document.getElementById('tabAlerts').style.display = name === 'alerts' ? 'block' : 'none';
+  document.getElementById('tabHistory').style.display = name === 'history' ? 'block' : 'none';
   document.getElementById('tabBtnOverview').classList.toggle('active', name === 'overview');
-  document.getElementById('tabBtnAlerts').classList.toggle('active',   name === 'alerts');
+  document.getElementById('tabBtnAlerts').classList.toggle('active', name === 'alerts');
+  document.getElementById('tabBtnHistory').classList.toggle('active', name === 'history');
   if (name === 'overview') {
-    setTimeout(function() {
-      tempChart.resize(); humChart.resize(); gasChart.resize();
-    }, 50);
+    setTimeout(function () { tempChart.resize(); humChart.resize(); gasChart.resize(); }, 50);
   }
+  if (name === 'history') renderSensorHistory();
 }
 
 // ── Alert history ──────────────────────────────────────────────────────────────
-var _alertLog       = [];
+var _alertLog = [];
 var _lastAlertLevel = 0;
 var _dangerTriggeredAt = null;
 
@@ -379,7 +380,7 @@ function renderAlertLog() {
     list.innerHTML = '<div class="no-alerts-msg">No alerts recorded yet.</div>';
     return;
   }
-  list.innerHTML = _alertLog.map(function(e) {
+  list.innerHTML = _alertLog.map(function (e) {
     var icon = e.type === 'clear' ? '\u2705' : e.type === 'danger' ? '\u26a0' : '\u26a1';
     return '<div class="alert-log-entry log-' + e.type + '">'
       + '<div class="log-entry-time">' + e.time + '</div>'
@@ -454,10 +455,10 @@ function fireBrowserNotification(title, body) {
 }
 
 function updateDangerBanner(data, time) {
-  var banner  = document.getElementById('dangerBanner');
-  var bTitle  = document.getElementById('dangerBannerTitle');
+  var banner = document.getElementById('dangerBanner');
+  var bTitle = document.getElementById('dangerBannerTitle');
   var bDetail = document.getElementById('dangerBannerDetail');
-  var bTime   = document.getElementById('dangerBannerTime');
+  var bTime = document.getElementById('dangerBannerTime');
 
   var dangers = [];
   if (data.alertTempState === 2 && data.dhtConnected)
@@ -467,7 +468,7 @@ function updateDangerBanner(data, time) {
   if (data.alertGasState === 2 && data.gasConnected)
     dangers.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
 
-  var isDanger  = dangers.length > 0;
+  var isDanger = dangers.length > 0;
   var isWarning = !isDanger && (data.alertLevel > 0);
 
   var badge = document.getElementById('alertBadge');
@@ -480,15 +481,15 @@ function updateDangerBanner(data, time) {
 
   if (isDanger) {
     banner.style.display = 'flex';
-    bTitle.textContent  = '\u26a0\ufe0f ' + (dangers.length === 1 ? 'Danger Detected' : dangers.length + ' Danger Conditions Active');
+    bTitle.textContent = '\u26a0\ufe0f ' + (dangers.length === 1 ? 'Danger Detected' : dangers.length + ' Danger Conditions Active');
     bDetail.textContent = dangers.join('  \u2022  ');
 
     if (_lastAlertLevel < 2) {
       _dangerTriggeredAt = time;
       var notifBody = [];
-      if (data.tempAdvice  && data.alertTempState === 2) notifBody.push(data.tempAdvice.action);
-      if (data.humAdvice   && data.alertHumState  === 2) notifBody.push(data.humAdvice.action);
-      if (data.gasAdvice   && data.alertGasState  === 2) notifBody.push(data.gasAdvice.action);
+      if (data.tempAdvice && data.alertTempState === 2) notifBody.push(data.tempAdvice.action);
+      if (data.humAdvice && data.alertHumState === 2) notifBody.push(data.humAdvice.action);
+      if (data.gasAdvice && data.alertGasState === 2) notifBody.push(data.gasAdvice.action);
       fireBrowserNotification('AtmosSense \u2014 Danger Alert', notifBody.join('\n'));
       addLogEntry('danger',
         (dangers.length === 1 ? 'Danger: ' : 'Multiple Dangers: ') + dangers.join(', '),
@@ -504,8 +505,8 @@ function updateDangerBanner(data, time) {
     } else if (isWarning && _lastAlertLevel === 0) {
       var warns = [];
       if (data.alertTempState === 1 && data.dhtConnected) warns.push('Temperature ' + data.temperature.toFixed(1) + '\u00b0C');
-      if (data.alertHumState  === 1 && data.dhtConnected) warns.push('Humidity ' + data.humidity.toFixed(0) + '%');
-      if (data.alertGasState  === 1 && data.gasConnected) warns.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+      if (data.alertHumState === 1 && data.dhtConnected) warns.push('Humidity ' + data.humidity.toFixed(0) + '%');
+      if (data.alertGasState === 1 && data.gasConnected) warns.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
       if (warns.length) addLogEntry('warning', 'Warning: ' + warns.join(', '), '');
     }
   }
@@ -516,53 +517,84 @@ function updateDangerBanner(data, time) {
 
 function updateData() {
   fetch('/data')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
       var time = new Date().toLocaleTimeString();
-      var gas  = data.gas || 0;
+      var dhtOk = data.dhtConnected !== false;
+      var gasOk = data.gasConnected === true;
+      var gas = data.gas || 0;
 
-      var warmupBanner = document.getElementById('warmupBanner');
+      var banner = document.getElementById('warmupBanner');
+
       if (!data.ready) {
-        warmupBanner.style.display = 'flex';
+        banner.style.display = 'flex';
         return;
       }
-      warmupBanner.style.display = 'none';
+
+      banner.style.display = 'none';
+
+      if (dhtOk) {
+        var entry = {
+          time: time,
+          temp: data.temperature,
+          hum: data.humidity,
+          gas: gasOk ? data.gas : null,
+          aqi: data.aqi || -1,
+          tempState: data.alertTempState,
+          humState: data.alertHumState,
+          gasState: data.alertGasState
+        };
+        _sensorHistory.unshift(entry);
+        if (_sensorHistory.length > 100) _sensorHistory.pop();
+        renderSensorHistory();
+      }
+
+      var entry = {
+        time: time,
+        temp: dhtOk ? data.temperature : null,
+        hum: dhtOk ? data.humidity : null,
+        gas: gasOk ? data.gas : null,
+        aqi: data.aqi || -1,
+        tempState: data.alertTempState,
+        humState: data.alertHumState,
+        gasState: data.alertGasState
+      };
+      _sensorHistory.unshift(entry);
+      if (_sensorHistory.length > 100) _sensorHistory.pop();
+      renderSensorHistory();
 
       updateParamAlerts(data);
       updateDangerBanner(data, time);
 
-      var dhtOk = data.dhtConnected !== false;
-      var gasOk = data.gasConnected === true;
-
       document.getElementById('tempOverlay').classList.toggle('visible', !dhtOk);
-      document.getElementById('humOverlay').classList.toggle('visible',  !dhtOk);
-      document.getElementById('gasOverlay').classList.toggle('visible',  !gasOk);
+      document.getElementById('humOverlay').classList.toggle('visible', !dhtOk);
+      document.getElementById('gasOverlay').classList.toggle('visible', !gasOk);
 
       if (dhtOk) {
-        drawGauge('tempGaugeCanvas', data.temperature, 0, 50,  tempSectors, '\u00b0C');
-        drawGauge('humGaugeCanvas',  data.humidity,    0, 100, humSectors,  '%');
+        drawGauge('tempGaugeCanvas', data.temperature, 0, 50, tempSectors, '\u00b0C');
+        drawGauge('humGaugeCanvas', data.humidity, 0, 100, humSectors, '%');
         document.getElementById('tempLabel').innerHTML = tempLabel(data.temperature);
-        document.getElementById('tempDesc').innerHTML  = tempDesc(data.temperature);
-        document.getElementById('humLabel').innerHTML  = humLabel(data.humidity);
-        document.getElementById('humDesc').innerHTML   = humDesc(data.humidity);
+        document.getElementById('tempDesc').innerHTML = tempDesc(data.temperature);
+        document.getElementById('humLabel').innerHTML = humLabel(data.humidity);
+        document.getElementById('humDesc').innerHTML = humDesc(data.humidity);
       }
 
       if (gasOk) {
         drawGauge('gasGaugeCanvas', gas, 0, 2000, gasSectors, 'ppm');
         document.getElementById('gasLabel').innerHTML = gasLabel(gas);
-        document.getElementById('gasDesc').innerHTML  = gasDesc(gas);
+        document.getElementById('gasDesc').innerHTML = gasDesc(gas);
       } else {
         document.getElementById('gasLabel').innerHTML = '&#128268; Sensor not connected';
-        document.getElementById('gasDesc').innerHTML  = gasDesc(0);
+        document.getElementById('gasDesc').innerHTML = gasDesc(0);
       }
 
-      var aqi   = data.aqi || -1;
+      var aqi = data.aqi || -1;
       var badge = document.getElementById('indoorAqiBadge');
       if (aqi >= 0 && gasOk) {
-        badge.textContent      = 'IAI ' + aqi + ' — ' + aqiText(aqi);
+        badge.textContent = 'IAI ' + aqi + ' — ' + aqiText(aqi);
         badge.style.background = aqiColor(aqi);
       } else {
-        badge.textContent      = '--';
+        badge.textContent = '--';
         badge.style.background = '#ccc';
       }
 
@@ -583,7 +615,7 @@ function updateData() {
         }
       }
     })
-    .catch(function(err) {
+    .catch(function (err) {
       console.error('[updateData] fetch/parse error:', err);
     });
 }
@@ -600,7 +632,7 @@ function hideModal() {
   document.getElementById('locationModal').style.display = 'none';
 }
 
-document.getElementById('cityInput').addEventListener('keydown', function(e) {
+document.getElementById('cityInput').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') submitCity();
 });
 
@@ -610,8 +642,8 @@ function submitCity() {
   document.getElementById('modalError').textContent = 'Searching...';
 
   fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(city) + '&format=json&limit=1')
-    .then(function(r) { return r.json(); })
-    .then(function(results) {
+    .then(function (r) { return r.json(); })
+    .then(function (results) {
       if (!results || results.length === 0) {
         document.getElementById('modalError').textContent = 'City not found. Try again.';
         return;
@@ -624,64 +656,64 @@ function submitCity() {
 
       document.getElementById('modalError').textContent = 'Syncing time...';
       fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=auto')
-        .then(function(r) { return r.json(); })
-        .then(function(tzData) {
+        .then(function (r) { return r.json(); })
+        .then(function (tzData) {
           _tzOffsetSeconds = tzData.utc_offset_seconds || 0;
           fetch('/timezone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'offset=' + _tzOffsetSeconds
-          }).catch(function() { console.warn('Could not sync timezone to ESP32'); });
+          }).catch(function () { console.warn('Could not sync timezone to ESP32'); });
 
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
-          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 900000);
+          weatherInterval = setInterval(function () { fetchOutsideWeather(lat, lon); }, 900000);
           if (!dataInterval) {
-            setTimeout(function() { updateData(); dataInterval = setInterval(updateData, 5000); }, 300);
+            setTimeout(function () { updateData(); dataInterval = setInterval(updateData, 5000); }, 300);
           }
         })
-        .catch(function() {
+        .catch(function () {
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
-          weatherInterval = setInterval(function() { fetchOutsideWeather(lat, lon); }, 900000);
+          weatherInterval = setInterval(function () { fetchOutsideWeather(lat, lon); }, 900000);
           if (!dataInterval) {
-            setTimeout(function() { updateData(); dataInterval = setInterval(updateData, 5000); }, 300);
+            setTimeout(function () { updateData(); dataInterval = setInterval(updateData, 5000); }, 300);
           }
         });
     })
-    .catch(function() {
+    .catch(function () {
       document.getElementById('modalError').textContent = 'Network error. Check connection.';
     });
 }
 
 function aqiLabel(aqi) {
-  if (aqi <= 50)  return { text: 'Good',              color: '#2ecc71' };
-  if (aqi <= 100) return { text: 'Moderate',           color: '#f39c12' };
+  if (aqi <= 50) return { text: 'Good', color: '#2ecc71' };
+  if (aqi <= 100) return { text: 'Moderate', color: '#f39c12' };
   if (aqi <= 150) return { text: 'Unhealthy for Some', color: '#e67e22' };
-  if (aqi <= 200) return { text: 'Unhealthy',          color: '#e74c3c' };
-  if (aqi <= 300) return { text: 'Very Unhealthy',     color: '#8e44ad' };
-  return                  { text: 'Hazardous',          color: '#7f0000' };
+  if (aqi <= 200) return { text: 'Unhealthy', color: '#e74c3c' };
+  if (aqi <= 300) return { text: 'Very Unhealthy', color: '#8e44ad' };
+  return { text: 'Hazardous', color: '#7f0000' };
 }
 
 function fetchOutsideWeather(lat, lon) {
   var weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
-                 + '&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius';
-  var aqiUrl     = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon
-                 + '&current=us_aqi';
+    + '&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius';
+  var aqiUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon
+    + '&current=us_aqi';
 
-  Promise.all([fetch(weatherUrl).then(function(r) { return r.json(); }), fetch(aqiUrl).then(function(r) { return r.json(); })])
-    .then(function(results) {
+  Promise.all([fetch(weatherUrl).then(function (r) { return r.json(); }), fetch(aqiUrl).then(function (r) { return r.json(); })])
+    .then(function (results) {
       var weather = results[0];
-      var air     = results[1];
+      var air = results[1];
       var el;
 
       var oTemp = weather.current.temperature_2m;
-      var oHum  = weather.current.relative_humidity_2m;
+      var oHum = weather.current.relative_humidity_2m;
 
-      if ((el = document.getElementById('outsideTemp')))    el.textContent = oTemp.toFixed(1);
-      if ((el = document.getElementById('outsideHum')))     el.textContent = oHum;
+      if ((el = document.getElementById('outsideTemp'))) el.textContent = oTemp.toFixed(1);
+      if ((el = document.getElementById('outsideHum'))) el.textContent = oHum;
 
       var aqi = air.current && air.current.us_aqi != null ? Math.round(air.current.us_aqi) : null;
       if (aqi !== null) {
@@ -692,17 +724,17 @@ function fetchOutsideWeather(lat, lon) {
       }
 
       if ((el = document.getElementById('outsideUpdated'))) el.textContent = 'Updated: ' + new Date().toLocaleTimeString();
-      if ((el = document.getElementById('weatherStatus')))  el.textContent = '';
+      if ((el = document.getElementById('weatherStatus'))) el.textContent = '';
 
       fetch('/climate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'outsideTemp=' + oTemp.toFixed(1) +
-              '&outsideHum='  + Math.round(oHum) +
-              '&city='        + encodeURIComponent(_currentCity)
-      }).catch(function() { console.warn('Could not push weather to OLED'); });
+          '&outsideHum=' + Math.round(oHum) +
+          '&city=' + encodeURIComponent(_currentCity)
+      }).catch(function () { console.warn('Could not push weather to OLED'); });
     })
-    .catch(function() {
+    .catch(function () {
       var el = document.getElementById('weatherStatus');
       if (el) el.textContent = 'Could not fetch weather data.';
     });
@@ -711,14 +743,14 @@ function fetchOutsideWeather(lat, lon) {
 // ── Room name ──────────────────────────────────────────────────────────────────
 function fetchRoomName() {
   fetch('/roomname')
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
       if (d.roomName) {
         document.getElementById('roomNameDisplay').textContent = d.roomName;
         document.title = 'AtmosSense — ' + d.roomName;
       }
     })
-    .catch(function() {});
+    .catch(function () { });
 }
 
 function openRoomNameEditor() {
@@ -737,23 +769,92 @@ function saveRoomName() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'name=' + encodeURIComponent(name)
   })
-  .then(function() {
-    document.getElementById('roomNameDisplay').textContent = name;
-    document.title = 'AtmosSense — ' + name;
-    document.getElementById('roomNameModal').style.display = 'none';
-  })
-  .catch(function() {
-    document.getElementById('roomNameError').textContent = 'Could not save. Try again.';
-  });
+    .then(function () {
+      document.getElementById('roomNameDisplay').textContent = name;
+      document.title = 'AtmosSense — ' + name;
+      document.getElementById('roomNameModal').style.display = 'none';
+    })
+    .catch(function () {
+      document.getElementById('roomNameError').textContent = 'Could not save. Try again.';
+    });
 }
 
-document.getElementById('roomNameModal').addEventListener('click', function(e) {
+document.getElementById('roomNameModal').addEventListener('click', function (e) {
   if (e.target === this) this.style.display = 'none';
 });
 
-document.getElementById('roomNameInput').addEventListener('keydown', function(e) {
+document.getElementById('roomNameInput').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') saveRoomName();
 });
 
+// ── Sensor history ─────────────────────────────────────────────────────────────
+var _sensorHistory = []; // { time, temp, hum, gas, aqi, tempState, humState, gasState }
+
+function clearSensorHistory() {
+  _sensorHistory = [];
+  renderSensorHistory();
+}
+
+function stateClass(state) {
+  if (state === 2) return 'sh-danger';
+  if (state === 1) return 'sh-warning';
+  if (state === 0) return 'sh-normal';
+  return 'sh-unknown';
+}
+
+function stateLabel(state) {
+  if (state === 2) return 'Danger';
+  if (state === 1) return 'Warn';
+  if (state === 0) return 'OK';
+  return '--';
+}
+
+function renderSensorHistory() {
+  var wrap = document.getElementById('sensorHistoryTable');
+  if (!wrap) return;
+
+  var valid = _sensorHistory.filter(function (r) { return r.temp != null; });
+  if (valid.length === 0) {
+    wrap.innerHTML = '<div class="no-alerts-msg">No readings captured yet.</div>';
+    return;
+  }
+
+  function stats(arr, key) {
+    var vals = arr.map(function (r) { return r[key]; }).filter(function (v) { return v != null && v >= 0; });
+    if (!vals.length) return { min: null, max: null, avg: null, last: null };
+    return {
+      min: Math.min.apply(null, vals),
+      max: Math.max.apply(null, vals),
+      avg: vals.reduce(function (a, b) { return a + b; }, 0) / vals.length,
+      last: vals[0]
+    };
+  }
+
+  var t = stats(valid, 'temp');
+  var h = stats(valid, 'hum');
+  var g = stats(_sensorHistory.filter(function (r) { return r.gas != null && r.gas > 0; }), 'gas');
+
+  function row(label, s, unit, decimals) {
+    if (!s.last) return '';
+    return '<tr>'
+      + '<td>' + label + '</td>'
+      + '<td>' + s.last.toFixed(decimals) + unit + '</td>'
+      + '<td>' + s.min.toFixed(decimals) + unit + '</td>'
+      + '<td>' + s.max.toFixed(decimals) + unit + '</td>'
+      + '<td>' + s.avg.toFixed(decimals) + unit + '</td>'
+      + '</tr>';
+  }
+
+  var last = _sensorHistory.find(function (r) { return r.temp != null; });
+
+  wrap.innerHTML = '<div class="sh-meta">Last reading: ' + (last ? last.time : '--') + ' &nbsp;|&nbsp; Samples: ' + valid.length + '</div>'
+    + '<table class="sh-table">'
+    + '<thead><tr><th>Parameter</th><th>Latest</th><th>Min</th><th>Max</th><th>Average</th></tr></thead>'
+    + '<tbody>'
+    + row('Temperature', t, '°C', 1)
+    + row('Humidity', h, '%', 0)
+    + (g.last ? row('Air Quality', g, ' ppm', 0) : '')
+    + '</tbody></table>';
+}
 fetchRoomName();
 showModal();
