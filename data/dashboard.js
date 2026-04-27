@@ -397,6 +397,94 @@ function clearAlertLog() {
   renderAlertLog();
 }
 
+// ── Daily summary ──────────────────────────────────────────────────────────────
+var _dailySummary = {
+  date: new Date().toLocaleDateString(),
+  warnings: 0,
+  dangers: 0,
+  totalDangerMs: 0,
+  totalWarningMs: 0,
+  _dangerStart: null,
+  _warningStart: null
+};
+
+function updateDailySummary(currentLevel) {
+  var today = new Date().toLocaleDateString();
+  if (_dailySummary.date !== today) {
+    _dailySummary = {
+      date: today,
+      warnings: 0,
+      dangers: 0,
+      totalDangerMs: 0,
+      totalWarningMs: 0,
+      _dangerStart: null,
+      _warningStart: null
+    };
+  }
+
+  var prev = _lastAlertLevel;
+
+  // Danger transitions
+  if (currentLevel === 2 && prev < 2) {
+    _dailySummary.dangers++;
+    _dailySummary._dangerStart = Date.now();
+  }
+  if (currentLevel < 2 && prev === 2 && _dailySummary._dangerStart) {
+    _dailySummary.totalDangerMs += Date.now() - _dailySummary._dangerStart;
+    _dailySummary._dangerStart = null;
+  }
+
+  // Warning transitions
+  if (currentLevel === 1 && prev < 1) {
+    _dailySummary.warnings++;
+    _dailySummary._warningStart = Date.now();
+  }
+  if (currentLevel < 1 && prev >= 1 && _dailySummary._warningStart) {
+    _dailySummary.totalWarningMs += Date.now() - _dailySummary._warningStart;
+    _dailySummary._warningStart = null;
+  }
+
+  renderDailySummary();
+}
+
+function formatDuration(ms) {
+  if (ms <= 0) return '0m';
+  var totalSec = Math.floor(ms / 1000);
+  var h = Math.floor(totalSec / 3600);
+  var m = Math.floor((totalSec % 3600) / 60);
+  var s = totalSec % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+}
+
+function renderDailySummary() {
+  var el = document.getElementById('dailySummaryBody');
+  if (!el) return;
+
+  var dangerMs = _dailySummary.totalDangerMs +
+    (_dailySummary._dangerStart ? Date.now() - _dailySummary._dangerStart : 0);
+  var warnMs = _dailySummary.totalWarningMs +
+    (_dailySummary._warningStart ? Date.now() - _dailySummary._warningStart : 0);
+
+  var allClear = _dailySummary.warnings === 0 && _dailySummary.dangers === 0;
+
+  el.innerHTML = allClear
+    ? '<div class="summary-all-clear">&#10003; No alerts today</div>'
+    : '<div class="summary-grid">'
+    + '<div class="summary-item sev-warning">'
+    + '<div class="summary-count">' + _dailySummary.warnings + '</div>'
+    + '<div class="summary-label">Warnings</div>'
+    + '<div class="summary-duration">' + formatDuration(warnMs) + ' total</div>'
+    + '</div>'
+    + '<div class="summary-item sev-danger">'
+    + '<div class="summary-count">' + _dailySummary.dangers + '</div>'
+    + '<div class="summary-label">Dangers</div>'
+    + '<div class="summary-duration">' + formatDuration(dangerMs) + ' total</div>'
+    + '</div>'
+    + '</div>';
+}
+
 function renderActiveAlerts(data) {
   var list = document.getElementById('activeAlertsList');
   if (!list) return;
@@ -510,6 +598,10 @@ function updateDangerBanner(data, time) {
       if (warns.length) addLogEntry('warning', 'Warning: ' + warns.join(', '), '');
     }
   }
+
+  var newLevel = isDanger ? 2 : (isWarning ? 1 : 0);
+  updateDailySummary(newLevel);
+  _lastAlertLevel = newLevel;
 
   _lastAlertLevel = isDanger ? 2 : (isWarning ? 1 : 0);
   renderActiveAlerts(data);
@@ -874,5 +966,9 @@ function exportChartData() {
   a.download = 'atmossense_history.csv';
   a.click();
 }
+
+var summaryDateEl = document.getElementById('summaryDate');
+if (summaryDateEl) summaryDateEl.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
 fetchRoomName();
 showModal();
