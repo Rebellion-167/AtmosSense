@@ -856,5 +856,23 @@ function renderSensorHistory() {
     + (g.last ? row('Air Quality', g, ' ppm', 0) : '')
     + '</tbody></table>';
 }
+
+function exportChartData() {
+  var labels = tempChart.data.labels;
+  var rows = ['Time,Temperature (C),Humidity (%),Air Quality (ppm)'];
+  for (var i = 0; i < labels.length; i++) {
+    rows.push([
+      labels[i],
+      tempChart.data.datasets[0].data[i] ?? '',
+      humChart.data.datasets[0].data[i] ?? '',
+      gasChart.data.datasets[0].data[i] ?? ''
+    ].join(','));
+  }
+  var blob = new Blob([rows.join('\r\n')], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'atmossense_history.csv';
+  a.click();
+}
 fetchRoomName();
 showModal();

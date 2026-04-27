@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>AtmosSense</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="/dashboard.css">
 </head>
+
 <body>
 
   <!-- Location input modal -->
@@ -20,7 +22,8 @@
   </div>
 
   <!-- Room name edit modal -->
-  <div id="roomNameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
+  <div id="roomNameModal"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
     <div class="modal-box">
       <h3>&#127968; Room Name</h3>
       <p>Give this sensor a name to identify the room it's in.</p>
@@ -42,6 +45,7 @@
       <span id="clockTime">--:--:--</span>
       <span class="banner-divider">|</span>
       <button class="change-city-btn" onclick="showModal()">&#9998; Change City</button>
+      <button class="change-city-btn" onclick="exportChartData()">&#11015; Export CSV</button>
     </div>
   </header>
 
@@ -142,7 +146,8 @@
         </div>
       </div>
 
-      <div id="weatherStatus" style="min-height:18px;font-size:13px;color:#e74c3c;text-align:center;margin-bottom:8px;"></div>
+      <div id="weatherStatus" style="min-height:18px;font-size:13px;color:#e74c3c;text-align:center;margin-bottom:8px;">
+      </div>
 
       <div class="main-layout">
 
@@ -153,12 +158,14 @@
           <canvas id="tempGaugeCanvas" class="gauge" width="300" height="220"></canvas>
           <div class="status-box">
             <div class="status-label" id="tempLabel">--</div>
-            <div class="status-desc"  id="tempDesc">Waiting for data...</div>
+            <div class="status-desc" id="tempDesc">Waiting for data...</div>
           </div>
           <div class="minmax-strip">
-            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span class="minmax-value" id="minTemp">--</span><span class="minmax-unit">°C</span></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span
+                class="minmax-value" id="minTemp">--</span><span class="minmax-unit">°C</span></div>
             <div class="minmax-divider"></div>
-            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span class="minmax-value" id="maxTemp">--</span><span class="minmax-unit">°C</span></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span
+                class="minmax-value" id="maxTemp">--</span><span class="minmax-unit">°C</span></div>
           </div>
         </div>
         <div class="chart-card">
@@ -175,12 +182,14 @@
           <canvas id="humGaugeCanvas" class="gauge" width="300" height="220"></canvas>
           <div class="status-box">
             <div class="status-label" id="humLabel">--</div>
-            <div class="status-desc"  id="humDesc">Waiting for data...</div>
+            <div class="status-desc" id="humDesc">Waiting for data...</div>
           </div>
           <div class="minmax-strip">
-            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span class="minmax-value" id="minHum">--</span><span class="minmax-unit">%</span></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span
+                class="minmax-value" id="minHum">--</span><span class="minmax-unit">%</span></div>
             <div class="minmax-divider"></div>
-            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span class="minmax-value" id="maxHum">--</span><span class="minmax-unit">%</span></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span
+                class="minmax-value" id="maxHum">--</span><span class="minmax-unit">%</span></div>
           </div>
         </div>
         <div class="chart-card">
@@ -195,16 +204,18 @@
           <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
           <div class="status-box">
             <div class="status-label" id="gasLabel">--</div>
-            <div class="status-desc"  id="gasDesc">Waiting for data...</div>
+            <div class="status-desc" id="gasDesc">Waiting for data...</div>
             <div class="aqi-row">
               <span class="aqi-row-label">Indoor Air Index</span>
               <span class="aqi-badge" id="indoorAqiBadge">--</span>
             </div>
           </div>
           <div class="minmax-strip">
-            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span class="minmax-value" id="minGas">--</span><span class="minmax-unit">ppm</span></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span
+                class="minmax-value" id="minGas">--</span><span class="minmax-unit">ppm</span></div>
             <div class="minmax-divider"></div>
-            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span class="minmax-value" id="maxGas">--</span><span class="minmax-unit">ppm</span></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span
+                class="minmax-value" id="maxGas">--</span><span class="minmax-unit">ppm</span></div>
           </div>
         </div>
         <div class="chart-card">
@@ -253,4 +264,5 @@
   <script src="/dashboard.js"></script>
 
 </body>
+
 </html>
