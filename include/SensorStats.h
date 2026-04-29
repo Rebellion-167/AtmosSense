@@ -5,7 +5,7 @@
 void statsBegin();
 
 // Call on every new sensor reading to update min/max
-void statsUpdate(float temp, float hum, float gas = -999.0f);
+void  statsUpdate(float temp, float hum, float gas = -999.0f, float noise = -999.0f);
 
 // Getters
 float statsMinTemp();
@@ -14,6 +14,8 @@ float statsMinHum();
 float statsMaxHum();
 float statsMinGas();
 float statsMaxGas();
+float statsMinNoise();
+float statsMaxNoise();
 
 // Call in loop() — checks if midnight has passed and resets if so
 void statsCheckMidnightReset();

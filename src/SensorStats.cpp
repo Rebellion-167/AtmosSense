@@ -9,6 +9,8 @@ static float _minHum  =  FLT_MAX;
 static float _maxHum  = -FLT_MAX;
 static float _minGas  =  FLT_MAX;
 static float _maxGas  = -FLT_MAX;
+static float _minNoise =  FLT_MAX;
+static float _maxNoise = -FLT_MAX;
 
 static int _lastResetDay = -1; // day-of-month when we last reset
 
@@ -27,9 +29,11 @@ static void resetStats() {
     _maxHum  = -FLT_MAX;
     _minGas  =  FLT_MAX;
     _maxGas  = -FLT_MAX;
+    _minNoise =  FLT_MAX;
+    _maxNoise = -FLT_MAX;
 }
 
-void statsUpdate(float temp, float hum, float gas) {
+void statsUpdate(float temp, float hum, float gas, float noise) {
     if (temp != -999.0f) {
         if (temp < _minTemp) _minTemp = temp;
         if (temp > _maxTemp) _maxTemp = temp;
@@ -42,6 +46,10 @@ void statsUpdate(float temp, float hum, float gas) {
         if (gas < _minGas) _minGas = gas;
         if (gas > _maxGas) _maxGas = gas;
     }
+    if (noise != -999.0f && noise > 0) {
+        if (noise < _minNoise) _minNoise = noise;
+        if (noise > _maxNoise) _maxNoise = noise;
+    }
 }
 
 float statsMinTemp() { return _minTemp ==  FLT_MAX ? -1 : _minTemp; }
@@ -50,6 +58,8 @@ float statsMinHum()  { return _minHum  ==  FLT_MAX ? -1 : _minHum;  }
 float statsMaxHum()  { return _maxHum  == -FLT_MAX ? -1 : _maxHum;  }
 float statsMinGas()  { return _minGas  ==  FLT_MAX ? -1 : _minGas;  }
 float statsMaxGas()  { return _maxGas  == -FLT_MAX ? -1 : _maxGas;  }
+float statsMinNoise() { return _minNoise ==  FLT_MAX ? -1 : _minNoise; }
+float statsMaxNoise() { return _maxNoise == -FLT_MAX ? -1 : _maxNoise; }
 
 void statsCheckMidnightReset() {
     struct tm timeinfo;

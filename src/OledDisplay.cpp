@@ -26,6 +26,9 @@ static float _minGas      = -999.f, _maxGas  = -999.f;
 static int   _tempState   = -1;
 static int   _humState    = -1;
 static int   _gasState    = -1;
+static float _noise    = -999.f;
+static float _minNoise = -999.f, _maxNoise = -999.f;
+static int   _noiseState = -1;
 
 // ── System info cache ─────────────────────────────────────────────────────────
 static char  _ip[20]         = "0.0.0.0";
@@ -301,7 +304,47 @@ static void drawPageGas() {
     if (_gasState == 1) { hline(56); drawWarningStripe(); }
 }
 
-// ── Page 4 — System Info ──────────────────────────────────────────────────────
+// Page 4 - Noise Level
+static void drawPageNoise() {
+    char buf[20];
+    _disp.setTextSize(1);
+    _disp.setCursor(0, 0);
+    _disp.print("NOISE LEVEL");
+    drawDots();
+    hline(10);
+
+    if (_noise <= 0) {
+        _disp.setCursor(0, 28); _disp.print("Sensor not");
+        _disp.setCursor(0, 40); _disp.print("connected");
+        return;
+    }
+
+    snprintf(buf, sizeof(buf), "%.0fdB", _noise);
+    _disp.setTextSize(2);
+    _disp.setCursor(0, 13);
+    _disp.print(buf);
+
+    _disp.setTextSize(1);
+    printRight(stateStr(_noiseState), 20, 1);
+    hline(32);
+
+    _disp.setTextSize(1);
+    _disp.setCursor(0, 35);
+    _disp.print("Safe: <70dB");
+    hline(44);
+
+    _disp.setCursor(0, 47);
+    if (_minNoise > 0) snprintf(buf, sizeof(buf), "Lo:%.0fdB", _minNoise);
+    else               snprintf(buf, sizeof(buf), "Lo:--");
+    _disp.print(buf);
+    if (_maxNoise > 0) snprintf(buf, sizeof(buf), "Hi:%.0fdB", _maxNoise);
+    else               snprintf(buf, sizeof(buf), "Hi:--");
+    printRight(buf, 47, 1);
+
+    if (_noiseState == 1) { hline(56); drawWarningStripe(); }
+}
+
+// ── Page 5 — System Info ──────────────────────────────────────────────────────
 static void drawPageSystem() {
     char buf[24];
 
@@ -367,7 +410,8 @@ static void redraw() {
         case 1: drawPageTemp();     break;
         case 2: drawPageHum();      break;
         case 3: drawPageGas();      break;
-        case 4: drawPageSystem();   break;
+        case 4: drawPageNoise();    break;
+        case 5: drawPageSystem();   break;
     }
     _disp.display();
 }
@@ -394,13 +438,14 @@ void oledBegin() {
 }
 
 void oledSetData(const char* room,
-                 float temp,     float hum,     float gas,
+                 float temp,      float hum,          float gas,   float noise,
                  float feelsLike, const char* comfortLabel,
                  int   aqi,
-                 float minTemp,  float maxTemp,
-                 float minHum,   float maxHum,
-                 float minGas,   float maxGas,
-                 int   tempState, int humState, int gasState)
+                 float minTemp,   float maxTemp,
+                 float minHum,    float maxHum,
+                 float minGas,    float maxGas,
+                 float minNoise,  float maxNoise,
+                 int   tempState, int humState, int gasState, int noiseState)
 {
     strncpy(_room,    room          ? room          : "Room", sizeof(_room)    - 1);
     strncpy(_comfort, comfortLabel  ? comfortLabel  : "--",   sizeof(_comfort) - 1);
@@ -411,6 +456,8 @@ void oledSetData(const char* room,
     _minHum  = minHum;  _maxHum  = maxHum;
     _minGas  = minGas;  _maxGas  = maxGas;
     _tempState = tempState; _humState = humState; _gasState = gasState;
+    _noise = noise; _minNoise = minNoise; _maxNoise = maxNoise;
+    _noiseState = noiseState;
 
     if (!_ready) return;
     _inStatus = false;

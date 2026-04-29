@@ -47,6 +47,8 @@ static void handleData()
     float temp = readTemperature();
     float hum = readHumidity();
     float gas = readGas();
+    float noise = readNoise();
+    bool  noiseReady = (noise != -999.0f && noise > 0);
 
     bool warmedUp = sensorWarmedUp();
     bool dhtReady = (temp != -999.0f && hum != -999.0f);
@@ -54,8 +56,8 @@ static void handleData()
 
     if (dhtReady)
     {
-        statsUpdate(temp, hum, gas);
-        alertUpdate(temp, hum, gas);
+        statsUpdate(temp, hum, gas, noise);
+        alertUpdate(temp, hum, gas, noise);
         // Feed the ring buffer on every poll — historyTick throttles internally
         historyTick(temp, dhtReady ? hum : -999.0f, gasReady ? gas : -999.0f);
     }
@@ -71,8 +73,9 @@ static void handleData()
     RoomAdvice tAdv = adviceForTemp(dhtReady ? alertGetComfortLabel() : "Unknown");
     RoomAdvice hAdv = adviceForHumidity(dhtReady ? hum : -1.0f);
     RoomAdvice gAdv = adviceForGas(gasReady ? gas : -1.0f);
+    RoomAdvice nAdv = adviceForNoise(noiseReady ? noise : -1.0f);
 
-    char json[1200];
+    char json[1600];
     snprintf(json, sizeof(json),
              "{"
              "\"ready\":%s,"
@@ -99,10 +102,21 @@ static void handleData()
              "\"minGas\":%.1f,"
              "\"maxGas\":%.1f,"
              "\"historyCount\":%d"
+             "\"noiseConnected\":%s,"
+             "\"noise\":%.1f,"
+             "\"alertNoiseState\":%d,"
+             "\"noiseAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
+             "\"minNoise\":%.1f,"
+             "\"maxNoise\":%.1f"
              "}",
              warmedUp ? "true" : "false",
              dhtReady ? "true" : "false",
              gasReady ? "true" : "false",
+             noiseReady ? "true" : "false",
+             noiseReady ? noise : 0.0f,
+             alertGetNoiseState(),
+             nAdv.title, nAdv.action, nAdv.reason, nAdv.urgency,
+             statsMinNoise(), statsMaxNoise(),
              tDisplay, hDisplay, gDisplay,
              aqi,
              alertGetFeelsLike(), alertGetComfortLabel(),
@@ -120,12 +134,13 @@ static void handleData()
 
     if (dhtReady)
     {
-        oledSetData(roomGetName(), temp, hum, gas,
-                    alertGetFeelsLike(), alertGetComfortLabel(), aqi,
-                    statsMinTemp(), statsMaxTemp(),
-                    statsMinHum(), statsMaxHum(),
-                    statsMinGas(), statsMaxGas(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState());
+        oledSetData(roomGetName(), temp, hum, gas, noise,
+            alertGetFeelsLike(), alertGetComfortLabel(), aqi,
+            statsMinTemp(), statsMaxTemp(),
+            statsMinHum(),  statsMaxHum(),
+            statsMinGas(),  statsMaxGas(),
+            statsMinNoise(), statsMaxNoise(),
+            alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
     }
 }
 
@@ -180,14 +195,17 @@ static void handleClimate()
 
     float t = readTemperature();
     float h = readHumidity();
+    float _g = readGas();
+    float _n = readNoise();
     if (t != -999.0f && h != -999.0f)
     {
-        oledSetData(roomGetName(), t, h, readGas(),
-                    alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(readGas() > 0 ? readGas() : 0),
-                    statsMinTemp(), statsMaxTemp(),
-                    statsMinHum(), statsMaxHum(),
-                    statsMinGas(), statsMaxGas(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState());
+        oledSetData(roomGetName(), t, h, _g, _n,
+            alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
+            statsMinTemp(), statsMaxTemp(),
+            statsMinHum(),  statsMaxHum(),
+            statsMinGas(),  statsMaxGas(),
+            statsMinNoise(), statsMaxNoise(),
+            alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
     }
 
     _server->send(200, "text/plain", "OK");
@@ -213,14 +231,17 @@ static void handleRoomNamePost()
 
     float t = readTemperature();
     float h = readHumidity();
+    float _g = readGas();
+    float _n = readNoise();
     if (t != -999.0f && h != -999.0f)
     {
-        oledSetData(roomGetName(), t, h, readGas(),
-                    alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(readGas() > 0 ? readGas() : 0),
-                    statsMinTemp(), statsMaxTemp(),
-                    statsMinHum(), statsMaxHum(),
-                    statsMinGas(), statsMaxGas(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState());
+       oledSetData(roomGetName(), t, h, _g, _n,
+            alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
+            statsMinTemp(), statsMaxTemp(),
+            statsMinHum(),  statsMaxHum(),
+            statsMinGas(),  statsMaxGas(),
+            statsMinNoise(), statsMaxNoise(),
+            alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
     }
 
     _server->send(200, "text/plain", "OK");

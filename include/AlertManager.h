@@ -19,6 +19,10 @@
 // Gas ppm (CO2-equivalent)
 #define GAS_SAFE_PPM     800.0f
 #define GAS_DANGER_PPM  1200.0f
+// Noise dB SPL
+#define NOISE_SAFE_DB    70.0f
+#define NOISE_WARN_DB    85.0f
+#define NOISE_DANGER_DB  95.0f
 
 typedef enum {
     ALERT_NONE    = 0,  // All sensors safe        → Green
@@ -27,7 +31,7 @@ typedef enum {
 } AlertLevel;
 
 void        alertBegin();
-AlertLevel  alertUpdate(float temp, float hum, float gas);
+AlertLevel  alertUpdate(float temp, float hum, float gas, float noise);
 AlertLevel  alertGetLevel();
 const char* alertGetReason();
 int         alertGetTempState(); // 0=safe, 1=warning, 2=danger, -1=not connected
@@ -35,5 +39,6 @@ int         alertGetHumState();
 int         alertGetGasState();
 float       alertGetFeelsLike();    // Heat index feels-like temp in °C
 const char* alertGetComfortLabel(); // "Comfortable", "Warm", "Hot" etc.
+int alertGetNoiseState();
 
 #endif // ALERT_MANAGER_H

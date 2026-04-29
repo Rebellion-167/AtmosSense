@@ -208,6 +208,11 @@ const gasChart = new Chart(document.getElementById('gasChart'), {
   data: { labels: [], datasets: [{ label: 'Air Quality (ppm)', data: [], borderColor: '#27ae60', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 2000 } } })
 });
+const noiseChart = new Chart(document.getElementById('noiseChart'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Noise (dB)', data: [], borderColor: '#8e44ad', borderWidth: 2, pointRadius: 2, tension: 0 }] },
+  options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 120 } } })
+});
 
 // ── Ring buffer history ────────────────────────────────────────────────────────
 var _historyLoaded = false;   // true once we've fetched the full history
@@ -300,6 +305,8 @@ function updateMinMaxDisplay(data) {
   document.getElementById('maxHum').textContent = data.maxHum > 0 ? data.maxHum.toFixed(1) : '--';
   document.getElementById('minGas').textContent = data.minGas > 0 ? Math.round(data.minGas) : '--';
   document.getElementById('maxGas').textContent = data.maxGas > 0 ? Math.round(data.maxGas) : '--';
+  document.getElementById('minNoise').textContent = data.minNoise > 0 ? data.minNoise.toFixed(0) : '--';
+  document.getElementById('maxNoise').textContent = data.maxNoise > 0 ? data.maxNoise.toFixed(0) : '--';
 }
 
 // ── Per-parameter alert boxes ──────────────────────────────────────────────────
@@ -342,6 +349,14 @@ function updateParamAlerts(data) {
     var gState = data.alertGasState === 2 ? 'danger' : data.alertGasState === 1 ? 'warning' : 'normal';
     setPanel('gasAlertBox', 'gasAlertStatus', 'gasAlertAction', gState, ga.title || '', ga.action || '');
   }
+  // Noise
+  if (!data.noiseConnected) {
+    setPanel('noiseAlertBox', 'noiseAlertStatus', 'noiseAlertAction', 'unknown', 'No Sensor', 'Check INMP441 connection.');
+  } else {
+    var na = data.noiseAdvice || {};
+    var nState = data.alertNoiseState === 2 ? 'danger' : data.alertNoiseState === 1 ? 'warning' : 'normal';
+    setPanel('noiseAlertBox', 'noiseAlertStatus', 'noiseAlertAction', nState, na.title || '', na.action || '');
+  }
 }
 
 // ── Sensor polling ─────────────────────────────────────────────────────────────
@@ -356,7 +371,7 @@ function switchTab(name) {
   document.getElementById('tabBtnAlerts').classList.toggle('active', name === 'alerts');
   document.getElementById('tabBtnHistory').classList.toggle('active', name === 'history');
   if (name === 'overview') {
-    setTimeout(function () { tempChart.resize(); humChart.resize(); gasChart.resize(); }, 50);
+    setTimeout(function () { tempChart.resize(); humChart.resize(); gasChart.resize(); noiseChart.resize();}, 50);
   }
   if (name === 'history') renderSensorHistory();
 }
@@ -524,6 +539,13 @@ function renderActiveAlerts(data) {
       adv.title || '', data.gas.toFixed(0) + ' ppm',
       adv.action || '', data.alertGasState === 2 ? _dangerTriggeredAt : null));
   }
+  if (data.alertNoiseState >= 1 && data.noiseConnected) {
+    var sev = data.alertNoiseState === 2 ? 'danger' : 'warning';
+    var adv = data.noiseAdvice || {};
+    cards.push(makeCard(sev, '\u{1F3A4}', 'Noise Level',
+      adv.title || '', data.noise.toFixed(0) + ' dB',
+      adv.action || '', data.alertNoiseState === 2 ? _dangerTriggeredAt : null));
+  }
 
   if (cards.length === 0) {
     list.innerHTML = '<div class="no-alerts-msg">\u2713 All parameters are within safe range.</div>';
@@ -555,6 +577,8 @@ function updateDangerBanner(data, time) {
     dangers.push('Humidity ' + data.humidity.toFixed(0) + '%');
   if (data.alertGasState === 2 && data.gasConnected)
     dangers.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+  if (data.alertNoiseState === 2 && data.noiseConnected)
+    dangers.push('Noise ' + data.noise.toFixed(0) + 'dB');
 
   var isDanger = dangers.length > 0;
   var isWarning = !isDanger && (data.alertLevel > 0);
@@ -595,6 +619,7 @@ function updateDangerBanner(data, time) {
       if (data.alertTempState === 1 && data.dhtConnected) warns.push('Temperature ' + data.temperature.toFixed(1) + '\u00b0C');
       if (data.alertHumState === 1 && data.dhtConnected) warns.push('Humidity ' + data.humidity.toFixed(0) + '%');
       if (data.alertGasState === 1 && data.gasConnected) warns.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+      if (data.alertNoiseState  === 1 && data.noiseConnected) warns.push('Noise ' + data.noise.toFixed(0) + 'dB');
       if (warns.length) addLogEntry('warning', 'Warning: ' + warns.join(', '), '');
     }
   }
@@ -690,6 +715,21 @@ function updateData() {
         badge.style.background = '#ccc';
       }
 
+      var noiseOk = data.noiseConnected === true;
+      document.getElementById('noiseOverlay').classList.toggle('visible', !noiseOk);
+      if (noiseOk) {
+        drawGauge('noiseGaugeCanvas', data.noise, 0, 120, noiseSectors, 'dB');
+        document.getElementById('noiseGaugeValue').textContent = data.noise.toFixed(0) + ' dB';
+        document.getElementById('noiseLabel').innerHTML = noiseLabel(data.noise);
+        document.getElementById('noiseDesc').innerHTML = noiseDesc(data.noise);
+      }
+
+      noiseChart.data.labels.push(time);
+      noiseChart.data.datasets[0].data.push(noiseOk ? data.noise : null);
+      if (noiseChart.data.labels.length > 20) {
+        noiseChart.data.labels.shift(); noiseChart.data.datasets[0].data.shift();
+      }
+      noiseChart.update('none');
       updateMinMaxDisplay(data);
 
       // ── Ring buffer: load full history once, then push every live poll ───────
@@ -969,6 +1009,28 @@ function exportChartData() {
 
 var summaryDateEl = document.getElementById('summaryDate');
 if (summaryDateEl) summaryDateEl.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+var noiseSectors = [
+  { color: '#2ecc71', lo: 0, hi: 70 },
+  { color: '#f39c12', lo: 70, hi: 85 },
+  { color: '#e67e22', lo: 85, hi: 95 },
+  { color: '#c0392b', lo: 95, hi: 120 }
+];
+
+function noiseLabel(db) {
+  if (db <= 0) return '&#128268; Sensor not connected';
+  if (db < 70) return '&#9989; Quiet';
+  if (db < 85) return '&#128266; Elevated';
+  if (db < 95) return '&#128267; Loud';
+  return '&#9763; Dangerous';
+}
+function noiseDesc(db) {
+  if (db <= 0) return 'INMP441 not detected.';
+  if (db < 70) return 'Comfortable noise level. No action needed.';
+  if (db < 85) return 'Noticeable background noise. Consider reducing sources.';
+  if (db < 95) return 'Loud environment. Limit prolonged exposure.';
+  return 'Dangerous noise level. Use ear protection immediately.';
+}
 
 fetchRoomName();
 showModal();

@@ -103,6 +103,15 @@
           <div class="alert-panel-action" id="gasAlertAction">Waiting for sensor...</div>
         </div>
       </div>
+      <div class="alert-panel state-unknown" id="noiseAlertBox">
+        <div class="alert-panel-icon">&#127908;</div>
+        <div class="alert-panel-body">
+          <div class="alert-panel-param">Noise Level</div>
+          <div class="alert-panel-reading" id="noiseGaugeValue">--</div>
+          <div class="alert-panel-title" id="noiseAlertStatus">--</div>
+          <div class="alert-panel-action" id="noiseAlertAction">Waiting for sensor...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -222,7 +231,25 @@
           <div class="card-title">&#128202; Air Quality History (ppm)</div>
           <div class="canvas-wrap"><canvas id="gasChart"></canvas></div>
         </div>
-
+        <!-- Noise -->
+        <div class="gauge-card">
+          <div class="card-title">&#127908; Noise Level (dB)</div>
+          <div class="sensor-overlay" id="noiseOverlay">&#128268; Sensor not detected</div>
+          <canvas id="noiseGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+          <div class="status-box">
+            <div class="status-label" id="noiseLabel">--</div>
+            <div class="status-desc"  id="noiseDesc">Waiting for data...</div>
+          </div>
+          <div class="minmax-strip">
+            <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span class="minmax-value" id="minNoise">--</span><span class="minmax-unit">dB</span></div>
+            <div class="minmax-divider"></div>
+            <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span class="minmax-value" id="maxNoise">--</span><span class="minmax-unit">dB</span></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="card-title">&#128202; Noise History (dB)</div>
+          <div class="canvas-wrap"><canvas id="noiseChart"></canvas></div>
+        </div>
       </div>
     </div>
   </div>

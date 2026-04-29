@@ -21,4 +21,6 @@ RoomAdvice adviceForHumidity(float humidity);
 // Generate advice for gas/air quality based on ppm
 RoomAdvice adviceForGas(float ppm);
 
+RoomAdvice adviceForNoise(float db);
+
 #endif // ACTION_ADVISOR_H

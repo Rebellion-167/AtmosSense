@@ -23,4 +23,6 @@ float readGas();
 // True once warmup is complete
 bool sensorWarmedUp();
 
+float readNoise(); // dB SPL approx; returns -999.0 if not ready
+
 #endif // SENSOR_READER_H

@@ -117,3 +117,30 @@ RoomAdvice adviceForGas(float ppm) {
         0
     };
 }
+
+RoomAdvice adviceForNoise(float db) {
+    if (db < 0.0f) return {
+        "Sensor Offline", "Check INMP441 connection.", "Unable to monitor noise.", 0
+    };
+    if (db >= 95.0f) return {
+        "Dangerous Noise",
+        "Leave the area or use ear protection immediately.",
+        "Above 95 dB causes permanent hearing damage within minutes.",
+        2
+    };
+    if (db >= 85.0f) return {
+        "High Noise Level",
+        "Reduce noise sources or limit exposure time.",
+        "Prolonged exposure above 85 dB risks hearing damage.",
+        1
+    };
+    if (db >= 70.0f) return {
+        "Elevated Noise",
+        "Consider reducing background noise.",
+        "Above 70 dB is distracting and tiring over time.",
+        1
+    };
+    return {
+        "Noise OK", "No action needed.", "Noise level is within comfortable range.", 0
+    };
+}
