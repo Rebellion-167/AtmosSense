@@ -48,7 +48,7 @@ static void handleData()
     float hum = readHumidity();
     float gas = readGas();
     float noise = readNoise();
-    bool  noiseReady = (noise != -999.0f && noise > 0);
+    bool noiseReady = (noise != -999.0f && noise > 0);
 
     bool warmedUp = sensorWarmedUp();
     bool dhtReady = (temp != -999.0f && hum != -999.0f);
@@ -58,32 +58,48 @@ static void handleData()
     {
         statsUpdate(temp, hum, gas, noise);
         alertUpdate(temp, hum, gas, noise);
-        // Feed the ring buffer on every poll — historyTick throttles internally
         historyTick(temp, dhtReady ? hum : -999.0f, gasReady ? gas : -999.0f);
     }
 
     float tDisplay = dhtReady ? temp : 0.0f;
     float hDisplay = dhtReady ? hum : 0.0f;
     float gDisplay = gasReady ? gas : 0.0f;
+    float nDisplay = noiseReady ? noise : 0.0f;
     int aqi = ppmToAqi(gasReady ? gas : 0);
     int alertLvl = (int)alertGetLevel();
 
     const char *reason = alertGetReason();
+    const char *comfortLabel = alertGetComfortLabel();
 
-    RoomAdvice tAdv = adviceForTemp(dhtReady ? alertGetComfortLabel() : "Unknown");
+    RoomAdvice tAdv = adviceForTemp(comfortLabel ? comfortLabel : "Comfortable");
     RoomAdvice hAdv = adviceForHumidity(dhtReady ? hum : -1.0f);
     RoomAdvice gAdv = adviceForGas(gasReady ? gas : -1.0f);
     RoomAdvice nAdv = adviceForNoise(noiseReady ? noise : -1.0f);
 
-    char json[1600];
+    const char *tTitle  = tAdv.title  ? tAdv.title  : "";
+    const char *tAction = tAdv.action ? tAdv.action : "";
+    const char *tReason = tAdv.reason ? tAdv.reason : "";
+    const char *hTitle  = hAdv.title  ? hAdv.title  : "";
+    const char *hAction = hAdv.action ? hAdv.action : "";
+    const char *hReason = hAdv.reason ? hAdv.reason : "";
+    const char *gTitle  = gAdv.title  ? gAdv.title  : "";
+    const char *gAction = gAdv.action ? gAdv.action : "";
+    const char *gReason = gAdv.reason ? gAdv.reason : "";
+    const char *nTitle  = nAdv.title  ? nAdv.title  : "";
+    const char *nAction = nAdv.action ? nAdv.action : "";
+    const char *nReason = nAdv.reason ? nAdv.reason : "";
+
+    char json[2048];
     snprintf(json, sizeof(json),
              "{"
              "\"ready\":%s,"
              "\"dhtConnected\":%s,"
              "\"gasConnected\":%s,"
+             "\"noiseConnected\":%s,"
              "\"temperature\":%.1f,"
              "\"humidity\":%.1f,"
              "\"gas\":%.1f,"
+             "\"noise\":%.1f,"
              "\"aqi\":%d,"
              "\"feelsLike\":%.1f,"
              "\"comfortLabel\":\"%s\","
@@ -92,42 +108,38 @@ static void handleData()
              "\"alertTempState\":%d,"
              "\"alertHumState\":%d,"
              "\"alertGasState\":%d,"
+             "\"alertNoiseState\":%d,"
              "\"tempAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"humAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"gasAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
+             "\"noiseAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"minTemp\":%.1f,"
              "\"maxTemp\":%.1f,"
              "\"minHum\":%.1f,"
              "\"maxHum\":%.1f,"
              "\"minGas\":%.1f,"
              "\"maxGas\":%.1f,"
-             "\"historyCount\":%d"
-             "\"noiseConnected\":%s,"
-             "\"noise\":%.1f,"
-             "\"alertNoiseState\":%d,"
-             "\"noiseAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"minNoise\":%.1f,"
-             "\"maxNoise\":%.1f"
+             "\"maxNoise\":%.1f,"
+             "\"historyCount\":%d"
              "}",
              warmedUp ? "true" : "false",
              dhtReady ? "true" : "false",
              gasReady ? "true" : "false",
              noiseReady ? "true" : "false",
-             noiseReady ? noise : 0.0f,
-             alertGetNoiseState(),
-             nAdv.title, nAdv.action, nAdv.reason, nAdv.urgency,
-             statsMinNoise(), statsMaxNoise(),
-             tDisplay, hDisplay, gDisplay,
+             tDisplay, hDisplay, gDisplay, nDisplay,
              aqi,
-             alertGetFeelsLike(), alertGetComfortLabel(),
+             alertGetFeelsLike(), comfortLabel ? comfortLabel : "",
              alertLvl, reason,
-             alertGetTempState(), alertGetHumState(), alertGetGasState(),
-             tAdv.title, tAdv.action, tAdv.reason, tAdv.urgency,
-             hAdv.title, hAdv.action, hAdv.reason, hAdv.urgency,
-             gAdv.title, gAdv.action, gAdv.reason, gAdv.urgency,
+             alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState(),
+             tTitle, tAction, tReason, tAdv.urgency,
+             hTitle, hAction, hReason, hAdv.urgency,
+             gTitle, gAction, gReason, gAdv.urgency,
+             nTitle, nAction, nReason, nAdv.urgency,
              statsMinTemp(), statsMaxTemp(),
-             statsMinHum(), statsMaxHum(),
-             statsMinGas(), statsMaxGas(),
+             statsMinHum(),  statsMaxHum(),
+             statsMinGas(),  statsMaxGas(),
+             statsMinNoise(), statsMaxNoise(),
              historyCount());
 
     _server->send(200, "application/json", json);
@@ -135,12 +147,13 @@ static void handleData()
     if (dhtReady)
     {
         oledSetData(roomGetName(), temp, hum, gas, noise,
-            alertGetFeelsLike(), alertGetComfortLabel(), aqi,
-            statsMinTemp(), statsMaxTemp(),
-            statsMinHum(),  statsMaxHum(),
-            statsMinGas(),  statsMaxGas(),
-            statsMinNoise(), statsMaxNoise(),
-            alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+                    alertGetFeelsLike(), comfortLabel ? comfortLabel : "",
+                    aqi,
+                    statsMinTemp(), statsMaxTemp(),
+                    statsMinHum(),  statsMaxHum(),
+                    statsMinGas(),  statsMaxGas(),
+                    statsMinNoise(), statsMaxNoise(),
+                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
     }
 }
 
@@ -200,12 +213,12 @@ static void handleClimate()
     if (t != -999.0f && h != -999.0f)
     {
         oledSetData(roomGetName(), t, h, _g, _n,
-            alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
-            statsMinTemp(), statsMaxTemp(),
-            statsMinHum(),  statsMaxHum(),
-            statsMinGas(),  statsMaxGas(),
-            statsMinNoise(), statsMaxNoise(),
-            alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+                    alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
+                    statsMinTemp(), statsMaxTemp(),
+                    statsMinHum(), statsMaxHum(),
+                    statsMinGas(), statsMaxGas(),
+                    statsMinNoise(), statsMaxNoise(),
+                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
     }
 
     _server->send(200, "text/plain", "OK");
@@ -235,13 +248,13 @@ static void handleRoomNamePost()
     float _n = readNoise();
     if (t != -999.0f && h != -999.0f)
     {
-       oledSetData(roomGetName(), t, h, _g, _n,
-            alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
-            statsMinTemp(), statsMaxTemp(),
-            statsMinHum(),  statsMaxHum(),
-            statsMinGas(),  statsMaxGas(),
-            statsMinNoise(), statsMaxNoise(),
-            alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+        oledSetData(roomGetName(), t, h, _g, _n,
+                    alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
+                    statsMinTemp(), statsMaxTemp(),
+                    statsMinHum(), statsMaxHum(),
+                    statsMinGas(), statsMaxGas(),
+                    statsMinNoise(), statsMaxNoise(),
+                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
     }
 
     _server->send(200, "text/plain", "OK");
