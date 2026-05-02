@@ -127,6 +127,9 @@
     <button class="tab-btn" id="tabBtnHistory" onclick="switchTab('history')">
       &#128203; History
     </button>
+    <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">
+      &#9881; Settings
+    </button>
   </nav>
 
   <!-- ── TAB: OVERVIEW ──────────────────────────────────────────────────────── -->
@@ -294,6 +297,65 @@
       <div id="sensorHistoryTable" class="sensor-history-wrap">
         <div class="no-alerts-msg">No readings captured yet.</div>
       </div>
+    </div>
+  </div>
+
+  <div id="tabSettings" class="tab-content" style="display:none;">
+    <div class="secondary-section">
+      <div class="alerts-section-title">Dashboard Preferences</div>
+      <div class="settings-grid">
+        <div class="settings-card">
+          <div class="settings-card-title">Polling Interval</div>
+          <div class="settings-row">
+            <label for="prefPollInterval">Fetch live data every</label>
+            <select id="prefPollInterval">
+              <option value="2">2 seconds</option>
+              <option value="5">5 seconds</option>
+              <option value="10">10 seconds</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">Browser Notifications</div>
+          <div class="settings-row">
+            <label for="prefNotificationsEnabled">Enable notifications</label>
+            <input type="checkbox" id="prefNotificationsEnabled" />
+          </div>
+          <div class="settings-row">
+            <label for="prefQuietStart">Quiet hours</label>
+            <div class="settings-inline">
+              <input type="number" id="prefQuietStart" min="0" max="23" />
+              <span>to</span>
+              <input type="number" id="prefQuietEnd" min="0" max="23" />
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">Units</div>
+          <div class="settings-row">
+            <label for="prefTempUnit">Temperature</label>
+            <select id="prefTempUnit">
+              <option value="C">Celsius (°C)</option>
+              <option value="F">Fahrenheit (°F)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">Chart Range</div>
+          <div class="settings-row">
+            <label for="prefChartRange">Live data window</label>
+            <select id="prefChartRange">
+              <option value="1h">Last 1 hour</option>
+              <option value="6h">Last 6 hours</option>
+              <option value="24h">Last 24 hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div id="settingsSavedNote" class="settings-note">Preferences are saved automatically in this browser.</div>
     </div>
   </div>
 

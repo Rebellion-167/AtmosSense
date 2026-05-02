@@ -113,6 +113,143 @@ var gasSectors = [
 // ── Live clock ─────────────────────────────────────────────────────────────────
 var _tzOffsetSeconds = null;
 var _currentCity = '';
+var PREFS_KEY = 'atmossense.dashboard.prefs.v1';
+var _prefs = {
+  pollIntervalSec: 5,
+  notificationsEnabled: true,
+  quietStartHour: 22,
+  quietEndHour: 7,
+  tempUnit: 'C',
+  chartRange: '6h'
+};
+
+function cToF(c) {
+  return (c * 9 / 5) + 32;
+}
+
+function displayTemp(c) {
+  return _prefs.tempUnit === 'F' ? cToF(c) : c;
+}
+
+function tempUnitLabel() {
+  return _prefs.tempUnit === 'F' ? '\u00b0F' : '\u00b0C';
+}
+
+function tempChartRange() {
+  return _prefs.tempUnit === 'F' ? { min: 32, max: 122 } : { min: 0, max: 50 };
+}
+
+function isQuietHours() {
+  var h = new Date().getHours();
+  var start = Number(_prefs.quietStartHour);
+  var end = Number(_prefs.quietEndHour);
+  if (start === end) return false;
+  if (start < end) return h >= start && h < end;
+  return h >= start || h < end;
+}
+
+function getMaxLivePoints() {
+  var hours = _prefs.chartRange === '1h' ? 1 : _prefs.chartRange === '24h' ? 24 : 6;
+  return Math.max(20, Math.round((hours * 3600) / Math.max(1, _prefs.pollIntervalSec)));
+}
+
+function loadPrefs() {
+  try {
+    var raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return;
+    var saved = JSON.parse(raw);
+    if (saved && typeof saved === 'object') {
+      _prefs = Object.assign({}, _prefs, saved);
+    }
+  } catch (e) {
+    console.warn('[Prefs] Could not load preferences:', e);
+  }
+}
+
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(_prefs));
+    var note = document.getElementById('settingsSavedNote');
+    if (note) {
+      note.textContent = 'Saved at ' + new Date().toLocaleTimeString();
+    }
+  } catch (e) {
+    console.warn('[Prefs] Could not save preferences:', e);
+  }
+}
+
+function applyUnitPrefsToUi() {
+  var unit = tempUnitLabel();
+  var tempChartEl = document.getElementById('tempChart');
+  var tempTitle = tempChartEl && tempChartEl.closest('.chart-card')
+    ? tempChartEl.closest('.chart-card').querySelector('.card-title')
+    : null;
+  if (tempTitle) tempTitle.innerHTML = '&#128200; Temperature History (' + unit + ')';
+
+  var minmax = document.querySelectorAll('#minTemp, #maxTemp');
+  minmax.forEach(function (el) {
+    var unitEl = el.parentElement ? el.parentElement.querySelector('.minmax-unit') : null;
+    if (unitEl) unitEl.textContent = unit;
+  });
+
+  var outsideUnit = document.querySelector('.outside-weather .unit');
+  if (outsideUnit) outsideUnit.textContent = unit;
+
+  var range = tempChartRange();
+  tempChart.options.scales.y.min = range.min;
+  tempChart.options.scales.y.max = range.max;
+  tempChart.data.datasets[0].label = 'Temperature (' + unit + ')';
+  tempChart.update('none');
+}
+
+function bindPreferenceControls() {
+  var pollEl = document.getElementById('prefPollInterval');
+  var notifEl = document.getElementById('prefNotificationsEnabled');
+  var quietStartEl = document.getElementById('prefQuietStart');
+  var quietEndEl = document.getElementById('prefQuietEnd');
+  var tempUnitEl = document.getElementById('prefTempUnit');
+  var rangeEl = document.getElementById('prefChartRange');
+  if (!pollEl || !notifEl || !quietStartEl || !quietEndEl || !tempUnitEl || !rangeEl) return;
+
+  pollEl.value = String(_prefs.pollIntervalSec);
+  notifEl.checked = !!_prefs.notificationsEnabled;
+  quietStartEl.value = String(_prefs.quietStartHour);
+  quietEndEl.value = String(_prefs.quietEndHour);
+  tempUnitEl.value = _prefs.tempUnit;
+  rangeEl.value = _prefs.chartRange;
+
+  pollEl.addEventListener('change', function () {
+    _prefs.pollIntervalSec = Math.max(2, Number(pollEl.value) || 5);
+    savePrefs();
+    startDataPolling(true);
+  });
+  notifEl.addEventListener('change', function () {
+    _prefs.notificationsEnabled = notifEl.checked;
+    if (_prefs.notificationsEnabled && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    savePrefs();
+  });
+  quietStartEl.addEventListener('change', function () {
+    _prefs.quietStartHour = Math.min(23, Math.max(0, Number(quietStartEl.value) || 0));
+    quietStartEl.value = String(_prefs.quietStartHour);
+    savePrefs();
+  });
+  quietEndEl.addEventListener('change', function () {
+    _prefs.quietEndHour = Math.min(23, Math.max(0, Number(quietEndEl.value) || 0));
+    quietEndEl.value = String(_prefs.quietEndHour);
+    savePrefs();
+  });
+  tempUnitEl.addEventListener('change', function () {
+    _prefs.tempUnit = tempUnitEl.value === 'F' ? 'F' : 'C';
+    applyUnitPrefsToUi();
+    savePrefs();
+  });
+  rangeEl.addEventListener('change', function () {
+    _prefs.chartRange = rangeEl.value;
+    savePrefs();
+  });
+}
 
 function getLocationTime() {
   if (_tzOffsetSeconds === null) return '--:--:--';
@@ -238,7 +375,7 @@ function loadHistory() {
 
       entries.forEach(function (e) {
         var lbl = fmtTime(e.t);
-        if (e.temp !== -999) { tempLabels.push(lbl); tempVals.push(e.temp); }
+        if (e.temp !== -999) { tempLabels.push(lbl); tempVals.push(displayTemp(e.temp)); }
         if (e.hum !== -999) { humLabels.push(lbl); humVals.push(e.hum); }
         if (e.gas !== -999) { gasLabels.push(lbl); gasVals.push(e.gas); }
       });
@@ -268,8 +405,7 @@ function loadHistory() {
 function pushLiveReading(dhtOk, gasOk, temp, hum, gas) {
   var time = new Date().toLocaleTimeString('en-GB');  // HH:MM:SS
 
-  // Keep the chart from growing unbounded during a long session
-  var MAX_LIVE = 360;
+  var MAX_LIVE = getMaxLivePoints();
 
   function pushToChart(chart, ok, val) {
     chart.data.labels.push(time);
@@ -280,7 +416,7 @@ function pushLiveReading(dhtOk, gasOk, temp, hum, gas) {
     }
   }
 
-  pushToChart(tempChart, dhtOk, temp);
+  pushToChart(tempChart, dhtOk, displayTemp(temp));
   pushToChart(humChart, dhtOk, hum);
   pushToChart(gasChart, gasOk, gas);
 
@@ -299,8 +435,8 @@ function updateHistoryBadge(count, intervalSec) {
 
 // ── Min / Max display ─────────────────────────────────────────────────────────
 function updateMinMaxDisplay(data) {
-  document.getElementById('minTemp').textContent = data.minTemp > 0 ? data.minTemp.toFixed(1) : '--';
-  document.getElementById('maxTemp').textContent = data.maxTemp > 0 ? data.maxTemp.toFixed(1) : '--';
+  document.getElementById('minTemp').textContent = data.minTemp > 0 ? displayTemp(data.minTemp).toFixed(1) : '--';
+  document.getElementById('maxTemp').textContent = data.maxTemp > 0 ? displayTemp(data.maxTemp).toFixed(1) : '--';
   document.getElementById('minHum').textContent = data.minHum > 0 ? data.minHum.toFixed(1) : '--';
   document.getElementById('maxHum').textContent = data.maxHum > 0 ? data.maxHum.toFixed(1) : '--';
   document.getElementById('minGas').textContent = data.minGas > 0 ? Math.round(data.minGas) : '--';
@@ -367,9 +503,11 @@ function switchTab(name) {
   document.getElementById('tabOverview').style.display = name === 'overview' ? 'block' : 'none';
   document.getElementById('tabAlerts').style.display = name === 'alerts' ? 'block' : 'none';
   document.getElementById('tabHistory').style.display = name === 'history' ? 'block' : 'none';
+  document.getElementById('tabSettings').style.display = name === 'settings' ? 'block' : 'none';
   document.getElementById('tabBtnOverview').classList.toggle('active', name === 'overview');
   document.getElementById('tabBtnAlerts').classList.toggle('active', name === 'alerts');
   document.getElementById('tabBtnHistory').classList.toggle('active', name === 'history');
+  document.getElementById('tabBtnSettings').classList.toggle('active', name === 'settings');
   if (name === 'overview') {
     setTimeout(function () { tempChart.resize(); humChart.resize(); gasChart.resize(); noiseChart.resize();}, 50);
   }
@@ -554,11 +692,14 @@ function renderActiveAlerts(data) {
   }
 }
 
-if ('Notification' in window && Notification.permission === 'default') {
-  Notification.requestPermission();
+function ensureNotificationPermission() {
+  if (_prefs.notificationsEnabled && 'Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 }
 
 function fireBrowserNotification(title, body) {
+  if (!_prefs.notificationsEnabled || isQuietHours()) return;
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(title, { body: body, icon: '' });
   }
@@ -688,7 +829,9 @@ function updateData() {
       document.getElementById('gasOverlay').classList.toggle('visible', !gasOk);
 
       if (dhtOk) {
-        drawGauge('tempGaugeCanvas', data.temperature, 0, 50, tempSectors, '\u00b0C');
+        var shownTemp = displayTemp(data.temperature);
+        var tr = tempChartRange();
+        drawGauge('tempGaugeCanvas', shownTemp, tr.min, tr.max, tempSectors, tempUnitLabel());
         drawGauge('humGaugeCanvas', data.humidity, 0, 100, humSectors, '%');
         document.getElementById('tempLabel').innerHTML = tempLabel(data.temperature);
         document.getElementById('tempDesc').innerHTML = tempDesc(data.temperature);
@@ -726,7 +869,7 @@ function updateData() {
 
       noiseChart.data.labels.push(time);
       noiseChart.data.datasets[0].data.push(noiseOk ? data.noise : null);
-      if (noiseChart.data.labels.length > 20) {
+      if (noiseChart.data.labels.length > getMaxLivePoints()) {
         noiseChart.data.labels.shift(); noiseChart.data.datasets[0].data.shift();
       }
       noiseChart.update('none');
@@ -754,6 +897,19 @@ function updateData() {
 
 // ── Outside weather ────────────────────────────────────────────────────────────
 var weatherInterval = null;
+
+function startDataPolling(forceRestart) {
+  if (forceRestart && dataInterval) {
+    clearInterval(dataInterval);
+    dataInterval = null;
+  }
+  if (!dataInterval) {
+    setTimeout(function () {
+      updateData();
+      dataInterval = setInterval(updateData, _prefs.pollIntervalSec * 1000);
+    }, 300);
+  }
+}
 
 function showModal() {
   document.getElementById('locationModal').style.display = 'flex';
@@ -801,18 +957,14 @@ function submitCity() {
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
           weatherInterval = setInterval(function () { fetchOutsideWeather(lat, lon); }, 900000);
-          if (!dataInterval) {
-            setTimeout(function () { updateData(); dataInterval = setInterval(updateData, 5000); }, 300);
-          }
+          startDataPolling(false);
         })
         .catch(function () {
           hideModal();
           fetchOutsideWeather(lat, lon);
           if (weatherInterval) clearInterval(weatherInterval);
           weatherInterval = setInterval(function () { fetchOutsideWeather(lat, lon); }, 900000);
-          if (!dataInterval) {
-            setTimeout(function () { updateData(); dataInterval = setInterval(updateData, 5000); }, 300);
-          }
+          startDataPolling(false);
         });
     })
     .catch(function () {
@@ -844,7 +996,7 @@ function fetchOutsideWeather(lat, lon) {
       var oTemp = weather.current.temperature_2m;
       var oHum = weather.current.relative_humidity_2m;
 
-      if ((el = document.getElementById('outsideTemp'))) el.textContent = oTemp.toFixed(1);
+      if ((el = document.getElementById('outsideTemp'))) el.textContent = displayTemp(oTemp).toFixed(1);
       if ((el = document.getElementById('outsideHum'))) el.textContent = oHum;
 
       var aqi = air.current && air.current.us_aqi != null ? Math.round(air.current.us_aqi) : null;
@@ -991,7 +1143,7 @@ function renderSensorHistory() {
 
 function exportChartData() {
   var labels = tempChart.data.labels;
-  var rows = ['Time,Temperature (C),Humidity (%),Air Quality (ppm)'];
+  var rows = ['Time,Temperature (' + tempUnitLabel() + '),Humidity (%),Air Quality (ppm)'];
   for (var i = 0; i < labels.length; i++) {
     rows.push([
       labels[i],
@@ -1032,5 +1184,9 @@ function noiseDesc(db) {
   return 'Dangerous noise level. Use ear protection immediately.';
 }
 
+loadPrefs();
+bindPreferenceControls();
+applyUnitPrefsToUi();
+ensureNotificationPermission();
 fetchRoomName();
 showModal();
