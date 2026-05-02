@@ -33,7 +33,7 @@
 
 #define NOISE_SAMPLES 256
 #define INMP441_REF ((float)INT32_MAX) // full-scale reference for 0 dBFS
-#define DB_OFFSET 120.0f               // empirical offset → approximate dB SPL
+#define DB_OFFSET 94.0f               // empirical offset → approximate dB SPL
 
 // ── State ─────────────────────────────────────────────────────────────────────
 static Adafruit_SHT31 _sht;
@@ -167,19 +167,17 @@ float readNoise() {
 
     static int32_t buf[NOISE_SAMPLES];
     size_t bytesRead = 0;
-    esp_err_t err = i2s_read(INMP441_PORT, buf, sizeof(buf), &bytesRead, pdMS_TO_TICKS(50));
+    esp_err_t err = i2s_read(INMP441_PORT, buf, sizeof(buf), &bytesRead, pdMS_TO_TICKS(100));
     if (err != ESP_OK || bytesRead < sizeof(int32_t)) return -999.0f;
 
     int samples = (int)(bytesRead / sizeof(int32_t));
     double sum = 0.0;
     for (int i = 0; i < samples; i++) {
-        // INMP441 data is left-justified in 32-bit word, shift down to 24-bit
-        int32_t sample = buf[i] >> 8;
-        double s = (double)sample / (double)0x7FFFFF;
+        double s = (double)buf[i] / (double)INT32_MAX;
         sum += s * s;
     }
     double rms = sqrt(sum / samples);
-    if (rms < 1e-10) return 0.0f;
+    if (rms < 1e-10) return 30.0f;
     float db = (float)(20.0 * log10(rms)) + DB_OFFSET;
-    return db < 0.0f ? 0.0f : db;
+    return db < 30.0f ? 30.0f : db;
 }

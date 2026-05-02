@@ -102,7 +102,7 @@ AlertLevel alertUpdate(float temp, float hum, float gas, float noise = -999.0f)
     int states[4] = {tempState, humState, gasState, noiseState};
     const char *names[4] = {"Temperature", "Humidity", "Air quality", "Noise"};
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         if (states[i] == -1)
             continue;

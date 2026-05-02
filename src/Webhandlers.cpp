@@ -48,7 +48,7 @@ static void handleData()
     float hum = readHumidity();
     float gas = readGas();
     float noise = readNoise();
-    bool noiseReady = (noise != -999.0f && noise > 0);
+    bool noiseReady = (noise != -999.0f);
 
     bool warmedUp = sensorWarmedUp();
     bool dhtReady = (temp != -999.0f && hum != -999.0f);
