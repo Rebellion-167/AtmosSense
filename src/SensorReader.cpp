@@ -32,7 +32,7 @@
 #define INMP441_PORT I2S_NUM_0
 
 #define NOISE_SAMPLES 256
-#define INMP441_REF ((float)INT32_MAX) // full-scale reference for 0 dBFS
+#define INMP441_REF 2147483648.0 // 2^31 — full-scale reference for 0 dBFS
 #define DB_OFFSET 94.0f               // empirical offset → approximate dB SPL
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ void sensorBegin()
         .mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate          = 16000,
         .bits_per_sample      = I2S_BITS_PER_SAMPLE_32BIT,
-        .channel_format       = I2S_CHANNEL_FMT_ONLY_LEFT,
+        .channel_format       = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags     = ESP_INTR_FLAG_LEVEL1,
         .dma_buf_count        = 4,
@@ -172,11 +172,15 @@ float readNoise() {
 
     int samples = (int)(bytesRead / sizeof(int32_t));
     double sum = 0.0;
+    int zeroCount = 0;
     for (int i = 0; i < samples; i++) {
-        double s = (double)buf[i] / (double)INT32_MAX;
+        if (buf[i] == 0) zeroCount++;
+        double s = (double)buf[i] / INMP441_REF;
         sum += s * s;
     }
     double rms = sqrt(sum / samples);
+    Serial.printf("[INMP441] samples=%d zeros=%d rms=%.10f\n", samples, zeroCount, rms);
+    if (zeroCount == samples) return -999.0f;
     if (rms < 1e-10) return 30.0f;
     float db = (float)(20.0 * log10(rms)) + DB_OFFSET;
     return db < 30.0f ? 30.0f : db;
