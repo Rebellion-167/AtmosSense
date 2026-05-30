@@ -4,6 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <title>AtmosSense</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="/dashboard.css">
 </head>
@@ -44,6 +47,7 @@
       <span class="banner-divider">|</span>
       <span id="clockTime">--:--:--</span>
       <span class="banner-divider">|</span>
+      <button id="themeToggle" class="theme-toggle-btn" title="Toggle Light/Dark Theme">🌙 Theme</button>
       <button class="change-city-btn" onclick="showModal()">&#9998; Change City</button>
       <button class="change-city-btn" onclick="exportChartData()">&#11015; Export CSV</button>
     </div>

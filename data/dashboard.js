@@ -26,9 +26,15 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
   var totalArc = endAngle - startAngle;
   var arcWidth = r * 0.18;
 
+  var isDark = document.body.getAttribute('data-theme') === 'dark';
+  var arcBg = isDark ? 'rgba(255, 255, 255, 0.08)' : '#e0e0e0';
+  var needleColor = isDark ? '#e6ebf5' : '#333';
+  var needleCapColor = isDark ? '#00f5d4' : '#444';
+  var textColor = isDark ? '#a0aec0' : '#999';
+
   ctx.beginPath();
   ctx.arc(cx, cy, r, startAngle, endAngle);
-  ctx.strokeStyle = '#e0e0e0';
+  ctx.strokeStyle = arcBg;
   ctx.lineWidth = arcWidth + 4;
   ctx.lineCap = 'butt';
   ctx.stroke();
@@ -59,17 +65,17 @@ function drawGauge(canvasId, value, min, max, sectors, unit) {
   ctx.lineTo(needleLen, 0);
   ctx.lineTo(0, -baseW);
   ctx.closePath();
-  ctx.fillStyle = '#333';
+  ctx.fillStyle = needleColor;
   ctx.fill();
   ctx.restore();
 
   ctx.beginPath();
   ctx.arc(cx, cy, baseW * 1.8, 0, Math.PI * 2);
-  ctx.fillStyle = '#444';
+  ctx.fillStyle = needleCapColor;
   ctx.fill();
 
-  var labelFont = Math.round(r * 0.16) + 'px Arial';
-  ctx.fillStyle = '#999';
+  var labelFont = Math.round(r * 0.16) + 'px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = textColor;
   ctx.font = labelFont;
   ctx.textBaseline = 'middle';
 
@@ -193,24 +199,45 @@ function aqiText(aqi) {
 // ── Charts ─────────────────────────────────────────────────────────────────────
 var chartOpts = { responsive: true, maintainAspectRatio: false, animation: false };
 
+function applyChartTheme(chart, isDark) {
+  var gridColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.05)';
+  var tickColor = isDark ? '#a0aec0' : '#888';
+  var labelColor = isDark ? '#e6ebf5' : '#555';
+  
+  if (chart.options.scales) {
+    if (chart.options.scales.x) {
+      chart.options.scales.x.grid = { color: gridColor };
+      chart.options.scales.x.ticks = { color: tickColor };
+    }
+    if (chart.options.scales.y) {
+      chart.options.scales.y.grid = { color: gridColor };
+      chart.options.scales.y.ticks = { color: tickColor };
+    }
+  }
+  if (chart.options.plugins && chart.options.plugins.legend) {
+    chart.options.plugins.legend.labels = { color: labelColor, font: { family: "'Plus Jakarta Sans', sans-serif" } };
+  }
+  chart.update('none');
+}
+
 const tempChart = new Chart(document.getElementById('tempChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [], borderColor: 'red', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
+  data: { labels: [], datasets: [{ label: 'Temperature (°C)', data: [], borderColor: '#ff4757', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 50 } } })
 });
 const humChart = new Chart(document.getElementById('humChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Humidity (%)', data: [], borderColor: 'blue', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
+  data: { labels: [], datasets: [{ label: 'Humidity (%)', data: [], borderColor: '#3742fa', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 100 } } })
 });
 const gasChart = new Chart(document.getElementById('gasChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Air Quality (ppm)', data: [], borderColor: '#27ae60', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false }] },
+  data: { labels: [], datasets: [{ label: 'Air Quality (ppm)', data: [], borderColor: '#2ed573', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 2000 } } })
 });
 const noiseChart = new Chart(document.getElementById('noiseChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Noise (dB)', data: [], borderColor: '#8e44ad', borderWidth: 2, pointRadius: 2, tension: 0 }] },
+  data: { labels: [], datasets: [{ label: 'Noise (dB)', data: [], borderColor: '#ffa502', borderWidth: 2.5, pointRadius: 2, tension: 0 }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 120 } } })
 });
 
@@ -632,10 +659,13 @@ function updateDangerBanner(data, time) {
   renderActiveAlerts(data);
 }
 
+var _lastPolledData = null;
+
 function updateData() {
   fetch('/data')
     .then(function (r) { return r.json(); })
     .then(function (data) {
+      _lastPolledData = data;
       var time = new Date().toLocaleTimeString();
       var dhtOk = data.dhtConnected !== false;
       var gasOk = data.gasConnected === true;
@@ -1034,3 +1064,53 @@ function noiseDesc(db) {
 
 fetchRoomName();
 showModal();
+
+// ── Theme Switcher ─────────────────────────────────────────────────────────────
+var themeToggleBtn = document.getElementById('themeToggle');
+
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  if (themeToggleBtn) {
+    themeToggleBtn.innerHTML = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+  
+  // Update charts grid/text
+  var isDark = theme === 'dark';
+  [tempChart, humChart, gasChart, noiseChart].forEach(function(chart) {
+    applyChartTheme(chart, isDark);
+  });
+  
+  // Redraw gauges to update needle and scale labels
+  var data = _lastPolledData;
+  if (data) {
+    var dhtOk = data.dhtConnected !== false;
+    var gasOk = data.gasConnected === true;
+    var noiseOk = data.noiseConnected === true;
+    if (dhtOk) {
+      drawGauge('tempGaugeCanvas', data.temperature, 0, 50, tempSectors, '°C');
+      drawGauge('humGaugeCanvas', data.humidity, 0, 100, humSectors, '%');
+    }
+    if (gasOk) {
+      drawGauge('gasGaugeCanvas', data.gas || 0, 0, 2000, gasSectors, 'ppm');
+    }
+    if (noiseOk) {
+      drawGauge('noiseGaugeCanvas', data.noise, 0, 120, noiseSectors, 'dB');
+    }
+  }
+}
+
+// Hook button click
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', function() {
+    var current = document.body.getAttribute('data-theme') || 'light';
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  });
+}
+
+// Init theme
+var savedTheme = localStorage.getItem('theme');
+if (!savedTheme) {
+  savedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+setTheme(savedTheme);
