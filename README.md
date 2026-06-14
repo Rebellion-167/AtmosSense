@@ -1,8 +1,8 @@
-<h1 align="center">🍃 AtmosSense</h1>
-
 <p align="center">
-  <img src="docs/banner.png" alt="AtmosSense Banner" width="100%" />
+  <img src="docs/logo.png" alt="AtmosSense Logo" width="120" height="120" />
 </p>
+
+<h1 align="center">AtmosSense</h1>
 
 <p align="center">
   <a href="https://platformio.org/"><img src="https://img.shields.io/badge/PlatformIO-v6.0+-blue?style=for-the-badge&logo=platformio" alt="PlatformIO" /></a>
