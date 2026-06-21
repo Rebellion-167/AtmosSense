@@ -4,6 +4,7 @@
 #include <WebServer.h>
 #include <Preferences.h>
 #include <DNSServer.h>
+#include "OledDisplay.h"
 
 static Preferences  _prefs;
 static WebServer    _apServer(80);
@@ -194,7 +195,10 @@ void wifiManagerBegin() {
 
         unsigned long start = millis();
         while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
-            delay(10);
+            int pct = ((millis() - start) * 100) / 15000;
+            if (pct > 100) pct = 100;
+            oledWifiConnecting(pct);
+            delay(100);
             Serial.print(".");
         }
         Serial.println();

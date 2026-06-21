@@ -493,6 +493,135 @@ static void redraw() {
     _disp.display();
 }
 
+// Boot and wifi screens
+void oledBootScreen() {
+    if (!_ready) return;
+    _disp.clearDisplay();
+    _disp.setTextColor(SSD1306_WHITE);
+    
+    // Draw thick border
+    _disp.drawRect(0, 0, SCREEN_W, SCREEN_H, SSD1306_WHITE);
+    _disp.drawRect(2, 2, SCREEN_W - 4, SCREEN_H - 4, SSD1306_WHITE);
+    
+    // Title
+    _disp.setTextSize(2);
+    _disp.setCursor(4, 16);
+    _disp.print("AtmosSense");
+    
+    // Subtitle
+    _disp.setTextSize(1);
+    _disp.setCursor(28, 38);
+    _disp.print("FIRING UP...");
+
+    // Loading bar outline
+    _disp.drawRect(24, 48, 80, 5, SSD1306_WHITE);
+    _disp.display();
+
+    // Animate loading bar
+    for (int i = 0; i <= 76; i += 4) {
+        _disp.fillRect(26, 50, i, 2, SSD1306_WHITE);
+        _disp.display();
+        delay(50);
+    }
+    delay(1500); // Keep on screen longer
+}
+
+void oledWifiConnecting(int percent) {
+    if (!_ready) return;
+    _inStatus = true;
+    _disp.clearDisplay();
+    _disp.setTextColor(SSD1306_WHITE);
+
+    // Draw pulsing WiFi icon
+    int cx = 64;
+    int cy = 20;
+    _disp.fillCircle(cx, cy + 10, 2, SSD1306_WHITE);
+    
+    int pulse = (millis() / 250) % 4;
+    if (pulse >= 1) {
+        _disp.drawCircle(cx, cy + 10, 6, SSD1306_WHITE);
+        _disp.fillRect(cx - 8, cy + 10, 16, 8, SSD1306_BLACK);
+    }
+    if (pulse >= 2) {
+        _disp.drawCircle(cx, cy + 10, 11, SSD1306_WHITE);
+        _disp.fillRect(cx - 13, cy + 10, 26, 13, SSD1306_BLACK);
+    }
+    if (pulse >= 3) {
+        _disp.drawCircle(cx, cy + 10, 16, SSD1306_WHITE);
+        _disp.fillRect(cx - 18, cy + 10, 36, 18, SSD1306_BLACK);
+    }
+
+    // Text
+    _disp.setTextSize(1);
+    _disp.setCursor(19, 38);
+    _disp.print("Connecting WiFi");
+
+    // Progress bar
+    _disp.drawRect(24, 50, 80, 6, SSD1306_WHITE);
+    int fillWidth = (percent * 76) / 100;
+    if (fillWidth > 76) fillWidth = 76;
+    _disp.fillRect(26, 52, fillWidth, 2, SSD1306_WHITE);
+    
+    _disp.display();
+}
+
+void oledWifiConnected(const char* ip) {
+    if (!_ready) return;
+    _inStatus = true;
+    _disp.clearDisplay();
+    _disp.setTextColor(SSD1306_WHITE);
+
+    // Checkmark badge
+    int cx = 64;
+    int cy = 18;
+    _disp.drawCircle(cx, cy, 12, SSD1306_WHITE);
+    _disp.drawLine(cx - 5, cy, cx - 1, cy + 4, SSD1306_WHITE);
+    _disp.drawLine(cx - 1, cy + 4, cx + 5, cy - 3, SSD1306_WHITE);
+
+    _disp.setTextSize(1);
+    _disp.setCursor(22, 34);
+    _disp.print("WIFI CONNECTED");
+
+    // IP address
+    int ipLen = strlen(ip);
+    int offset = (SCREEN_W - (ipLen * 6)) / 2;
+    if (offset < 0) offset = 0;
+    _disp.setCursor(offset, 48);
+    _disp.print(ip);
+
+    _disp.display();
+}
+
+void oledSensorsWarmingUp(int percent) {
+    if (!_ready) return;
+    _inStatus = true;
+    _disp.clearDisplay();
+    _disp.setTextColor(SSD1306_WHITE);
+
+    // Rotating hand
+    int cx = 64;
+    int cy = 16;
+    _disp.drawCircle(cx, cy, 10, SSD1306_WHITE);
+    int handAngle = (millis() / 150) % 8;
+    int dx[8] = {0, 5, 7, 5, 0, -5, -7, -5};
+    int dy[8] = {-7, -5, 0, 5, 7, 5, 0, -5};
+    _disp.drawLine(cx, cy, cx + dx[handAngle], cy + dy[handAngle], SSD1306_WHITE);
+
+    _disp.setTextSize(1);
+    _disp.setCursor(10, 32);
+    _disp.print("WARMING UP SENSORS");
+    _disp.setCursor(22, 42);
+    _disp.print("Please wait...");
+
+    // Progress bar
+    _disp.drawRect(24, 52, 80, 6, SSD1306_WHITE);
+    int fillWidth = (percent * 76) / 100;
+    if (fillWidth > 76) fillWidth = 76;
+    _disp.fillRect(26, 54, fillWidth, 2, SSD1306_WHITE);
+
+    _disp.display();
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 void oledBegin() {
     Wire.begin(OLED_SDA, OLED_SCL);
@@ -504,12 +633,6 @@ void oledBegin() {
     pinMode(OLED_BTN_PIN, INPUT_PULLUP);
 
     _disp.clearDisplay();
-    _disp.setTextColor(SSD1306_WHITE);
-    _disp.setTextSize(1);
-    _disp.setCursor(28, 20);
-    _disp.print("AtmosSense");
-    _disp.setCursor(22, 34);
-    _disp.print("Starting up...");
     _disp.display();
     Serial.printf("[OLED] Ready. Page button on GPIO%d\n", OLED_BTN_PIN);
 }

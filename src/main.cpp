@@ -12,6 +12,7 @@
 #include "WiFiManager.h"
 #include "OledDisplay.h"
 #include "RoomConfig.h"
+#include "AqiConverter.h"
 
 #define NTP_SERVER "pool.ntp.org"
 
@@ -53,15 +54,14 @@ void setup() {
 
     // Init OLED first — this calls Wire.begin(21,22) which the SHT30 also needs
     oledBegin();
+    oledBootScreen();
 
     sensorBegin();
 
-    if (wifiHasCredentials()) oledStatus("Connecting...", "to WiFi");
     wifiManagerBegin();
-    oledStatus("WiFi OK", WiFi.localIP().toString().c_str());
+    oledWifiConnected(WiFi.localIP().toString().c_str());
     oledSetSystem(WiFi.localIP().toString().c_str(), 0);
     delay(1500);
-    oledStatus("Sensor warming up", "please wait...");
 
     configTime(0, 0, NTP_SERVER);
 
@@ -74,11 +74,45 @@ void setup() {
     Serial.println("HTTP server started");
 }
 
+void performSensorUpdate() {
+    float temp = readTemperature();
+    float hum = readHumidity();
+    float gas = readGas();
+    float noise = readNoise();
+    
+    bool dhtReady = (temp != -999.0f && hum != -999.0f);
+    bool gasReady = (gas != -999.0f && gas > 0);
+    
+    if (dhtReady) {
+        statsUpdate(temp, hum, gas, noise);
+        alertUpdate(temp, hum, gas, noise);
+        historyTick(temp, hum, gasReady ? gas : -999.0f);
+        
+        int aqi = ppmToAqi(gasReady ? gas : 0);
+        const char *comfortLabel = alertGetComfortLabel();
+        
+        oledSetData(roomGetName(), temp, hum, gas, noise,
+                    alertGetFeelsLike(), comfortLabel ? comfortLabel : "",
+                    aqi,
+                    statsMinTemp(), statsMaxTemp(),
+                    statsMinHum(),  statsMaxHum(),
+                    statsMinGas(),  statsMaxGas(),
+                    statsMinNoise(), statsMaxNoise(),
+                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+    }
+}
+
 void loop() {
     sensorTick();
     server.handleClient();
     statsCheckMidnightReset();
     oledTick();
+
+    static unsigned long _lastSensorReadMs = 0;
+    if (sensorWarmedUp() && millis() - _lastSensorReadMs >= 2000) {
+        _lastSensorReadMs = millis();
+        performSensorUpdate();
+    }
 
     static unsigned long _lastUptimeMs = 0;
     if (millis() - _lastUptimeMs >= 1000) {

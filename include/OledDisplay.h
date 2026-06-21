@@ -31,6 +31,12 @@
 // Call once in setup()
 void oledBegin();
 
+// Boot and connection screens
+void oledBootScreen();
+void oledWifiConnecting(int percent);
+void oledWifiConnected(const char* ip);
+void oledSensorsWarmingUp(int percent);
+
 // Update sensor data cache and redraw current page — call every poll cycle
 void oledSetData(const char* room,
                  float temp,      float hum,          float gas,   float noise,

@@ -3,6 +3,7 @@
 #include <Adafruit_SHT31.h>
 #include <Arduino.h>
 #include <driver/i2s.h>
+#include "OledDisplay.h"
 
 // ── SHT30 config ──────────────────────────────────────────────────────────────
 #define SHT30_ADDR 0x44
@@ -105,6 +106,9 @@ bool sensorTick()
     if (!isnan(t) && !isnan(h))
     {
         _warmupRemaining--;
+        int progress = ((WARMUP_READINGS - _warmupRemaining) * 100) / WARMUP_READINGS;
+        oledSensorsWarmingUp(progress);
+
         Serial.printf("[SHT30] Warmup discard (%d left): %.2f C  %.2f%%\n",
                       _warmupRemaining, t, h);
         if (_warmupRemaining <= 0)
