@@ -42,6 +42,48 @@ static bool _ready = false;
 static int _warmupRemaining = WARMUP_READINGS;
 static unsigned long _lastReadMs = 0;
 static bool _i2sReady = false;
+static float _currentNoiseDb = -999.0f;
+
+static void i2sNoiseTask(void* pvParameters) {
+    static int32_t buf[NOISE_SAMPLES];
+    while (true) {
+        size_t bytesRead = 0;
+        // Block until buffer is filled
+        esp_err_t err = i2s_read(INMP441_PORT, buf, sizeof(buf), &bytesRead, portMAX_DELAY);
+        if (err == ESP_OK && bytesRead >= sizeof(int32_t)) {
+            int samples = (int)(bytesRead / sizeof(int32_t));
+            double sum = 0.0;
+            int count = 0;
+            // L/R pin is tied to GND (Left channel). We read stereo and extract Left channel samples (even indices)
+            for (int i = 0; i < samples; i += 2) {
+                int32_t val = buf[i] >> 8;
+                double s = (double)val / 8388608.0;
+                sum += s * s;
+                count++;
+            }
+            double rms = 0.0;
+            if (count > 0) {
+                rms = sqrt(sum / count);
+            }
+            float db = 30.0f;
+            if (rms >= 1e-10) {
+                db = (float)(20.0 * log10(rms)) + DB_OFFSET;
+            }
+            if (db < 30.0f) db = 30.0f;
+            _currentNoiseDb = db;
+
+            // Periodic diagnostics
+            static unsigned long lastPrint = 0;
+            if (millis() - lastPrint >= 2000) {
+                lastPrint = millis();
+                Serial.printf("[INMP441] raw sample: %d (0x%08X), shifted: %d, rms: %.6f, db: %.1f\n", 
+                              buf[0], buf[0], buf[0] >> 8, rms, db);
+            }
+        } else {
+            delay(10);
+        }
+    }
+}
 
 void sensorBegin()
 {
@@ -62,7 +104,7 @@ void sensorBegin()
         .mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate          = 16000,
         .bits_per_sample      = I2S_BITS_PER_SAMPLE_32BIT,
-        .channel_format       = I2S_CHANNEL_FMT_ONLY_LEFT,
+        .channel_format       = I2S_CHANNEL_FMT_RIGHT_LEFT, // Read both channels to bypass ESP-IDF mono driver bugs
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags     = ESP_INTR_FLAG_LEVEL1,
         .dma_buf_count        = 4,
@@ -84,6 +126,8 @@ void sensorBegin()
         delay(200);
         _i2sReady = true;
         Serial.println("[INMP441] I2S ready.");
+        // Spawn the continuous background task
+        xTaskCreate(i2sNoiseTask, "I2SNoiseTask", 4096, NULL, 1, NULL);
     } else {
         Serial.printf("[INMP441] Init failed: %d %d\n", err1, err2);
         _i2sReady = false;
@@ -168,20 +212,5 @@ bool sensorWarmedUp() { return _ready; }
 
 float readNoise() {
     if (!_i2sReady) return -999.0f;
-
-    static int32_t buf[NOISE_SAMPLES];
-    size_t bytesRead = 0;
-    esp_err_t err = i2s_read(INMP441_PORT, buf, sizeof(buf), &bytesRead, pdMS_TO_TICKS(100));
-    if (err != ESP_OK || bytesRead < sizeof(int32_t)) return -999.0f;
-
-    int samples = (int)(bytesRead / sizeof(int32_t));
-    double sum = 0.0;
-    for (int i = 0; i < samples; i++) {
-        double s = (double)buf[i] / (double)INT32_MAX;
-        sum += s * s;
-    }
-    double rms = sqrt(sum / samples);
-    if (rms < 1e-10) return 30.0f;
-    float db = (float)(20.0 * log10(rms)) + DB_OFFSET;
-    return db < 30.0f ? 30.0f : db;
+    return _currentNoiseDb;
 }
