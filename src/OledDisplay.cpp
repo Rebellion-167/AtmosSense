@@ -152,6 +152,53 @@ static void drawWarningStripe() {
     _disp.print("[!] Warning active");
 }
 
+// ── Comfort score calculation logic ──────────────────────────────────────────
+static int getComfortLevel() {
+    int worstState = 0;
+    if (_tempState > worstState) worstState = _tempState;
+    if (_humState > worstState) worstState = _humState;
+    if (_gasState > worstState) worstState = _gasState;
+    if (_noiseState > worstState) worstState = _noiseState;
+    return worstState;
+}
+
+// ── Face drawing helpers ──────────────────────────────────────────────────────
+static void drawFaceHappy(int16_t cx, int16_t cy) {
+    // Outer face
+    _disp.drawCircle(cx, cy, 14, SSD1306_WHITE);
+    // Eyes
+    _disp.fillCircle(cx - 5, cy - 3, 2, SSD1306_WHITE);
+    _disp.fillCircle(cx + 5, cy - 3, 2, SSD1306_WHITE);
+    // Smile curve
+    _disp.drawLine(cx - 5, cy + 3, cx - 2, cy + 6, SSD1306_WHITE);
+    _disp.drawLine(cx - 2, cy + 6, cx + 2, cy + 6, SSD1306_WHITE);
+    _disp.drawLine(cx + 2, cy + 6, cx + 5, cy + 3, SSD1306_WHITE);
+}
+
+static void drawFaceNeutral(int16_t cx, int16_t cy) {
+    // Outer face
+    _disp.drawCircle(cx, cy, 14, SSD1306_WHITE);
+    // Eyes
+    _disp.fillCircle(cx - 5, cy - 3, 2, SSD1306_WHITE);
+    _disp.fillCircle(cx + 5, cy - 3, 2, SSD1306_WHITE);
+    // Straight mouth
+    _disp.drawLine(cx - 5, cy + 4, cx + 5, cy + 4, SSD1306_WHITE);
+}
+
+static void drawFaceSad(int16_t cx, int16_t cy) {
+    // Outer face
+    _disp.drawCircle(cx, cy, 14, SSD1306_WHITE);
+    // Eyes
+    _disp.drawLine(cx - 7, cy - 4, cx - 4, cy - 2, SSD1306_WHITE);
+    _disp.drawLine(cx - 6, cy - 4, cx - 3, cy - 2, SSD1306_WHITE);
+    _disp.drawLine(cx + 7, cy - 4, cx + 4, cy - 2, SSD1306_WHITE);
+    _disp.drawLine(cx + 6, cy - 4, cx + 3, cy - 2, SSD1306_WHITE);
+    // Frown curve
+    _disp.drawLine(cx - 5, cy + 6, cx - 2, cy + 3, SSD1306_WHITE);
+    _disp.drawLine(cx - 2, cy + 3, cx + 2, cy + 3, SSD1306_WHITE);
+    _disp.drawLine(cx + 2, cy + 3, cx + 5, cy + 6, SSD1306_WHITE);
+}
+
 // ── Page 0 — Overview ─────────────────────────────────────────────────────────
 static void drawPageOverview() {
     char buf[16];
@@ -163,28 +210,58 @@ static void drawPageOverview() {
     drawDots();
     hline(10);
 
+    // Draw vertical divider
+    _disp.drawFastVLine(60, 10, 54, SSD1306_WHITE);
+
+    // Left Side: Comfort face & text
+    int comfort = getComfortLevel();
+    if (comfort == 2) {
+        drawFaceSad(30, 28);
+        _disp.setTextSize(1);
+        _disp.setCursor(12, 48);
+        _disp.print("DANGER");
+    } else if (comfort == 1) {
+        drawFaceNeutral(30, 28);
+        _disp.setTextSize(1);
+        _disp.setCursor(9, 48);
+        _disp.print("WARNING");
+    } else {
+        drawFaceHappy(30, 28);
+        _disp.setTextSize(1);
+        _disp.setCursor(15, 48);
+        _disp.print("IDEAL");
+    }
+
+    // Right Side: Stacked values
     _disp.setTextSize(1);
-    _disp.setCursor(0, 14);
-    _disp.print("Temp");
+
+    // Temp
+    _disp.setCursor(65, 14);
+    _disp.print("T:");
     if (!isnan(_temp)) snprintf(buf, sizeof(buf), "%.1fC", _temp);
-    else               snprintf(buf, sizeof(buf), "--");
-    printRight(buf, 13, 2);
-    hline(32);
+    else               strcpy(buf, "--");
+    _disp.print(buf);
 
-    _disp.setTextSize(1);
-    _disp.setCursor(0, 35);
-    _disp.print("Humidity");
+    // Hum
+    _disp.setCursor(65, 26);
+    _disp.print("H:");
     if (!isnan(_hum)) snprintf(buf, sizeof(buf), "%.0f%%", _hum);
-    else              snprintf(buf, sizeof(buf), "--");
-    printRight(buf, 34, 2);
-    hline(53);
+    else              strcpy(buf, "--");
+    _disp.print(buf);
 
-    _disp.setTextSize(1);
-    _disp.setCursor(0, 56);
-    _disp.print("IAI");
+    // Air Quality / IAI
+    _disp.setCursor(65, 38);
+    _disp.print("A:");
     if (_gas > 0) snprintf(buf, sizeof(buf), "%d", _aqi);
-    else          snprintf(buf, sizeof(buf), "--");
-    printRight(buf, 56, 1);
+    else          strcpy(buf, "--");
+    _disp.print(buf);
+
+    // Noise
+    _disp.setCursor(65, 50);
+    _disp.print("N:");
+    if (_noise > 0) snprintf(buf, sizeof(buf), "%.0fdB", _noise);
+    else            strcpy(buf, "--");
+    _disp.print(buf);
 }
 
 // ── Page 1 — Temperature detail ───────────────────────────────────────────────
