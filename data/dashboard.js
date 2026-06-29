@@ -378,8 +378,76 @@ const noiseChart = new Chart(document.getElementById('noiseChart'), {
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 120 } } })
 });
 
+// ── LocalStorage Chart History ───────────────────────────────────────────────
+var CHART_HISTORY_KEY = 'atmossense.dashboard.chart_history.v1';
+
+function loadHistoryFromLocalStorage() {
+  try {
+    var raw = localStorage.getItem(CHART_HISTORY_KEY);
+    if (!raw) return false;
+    var historyData = JSON.parse(raw);
+    if (historyData) {
+      var loaded = false;
+      if (historyData.temp && Array.isArray(historyData.temp.labels) && Array.isArray(historyData.temp.data) && historyData.temp.labels.length > 0) {
+        tempChart.data.labels = historyData.temp.labels;
+        tempChart.data.datasets[0].data = historyData.temp.data;
+        tempChart.update('none');
+        loaded = true;
+      }
+      if (historyData.hum && Array.isArray(historyData.hum.labels) && Array.isArray(historyData.hum.data) && historyData.hum.labels.length > 0) {
+        humChart.data.labels = historyData.hum.labels;
+        humChart.data.datasets[0].data = historyData.hum.data;
+        humChart.update('none');
+        loaded = true;
+      }
+      if (historyData.gas && Array.isArray(historyData.gas.labels) && Array.isArray(historyData.gas.data) && historyData.gas.labels.length > 0) {
+        gasChart.data.labels = historyData.gas.labels;
+        gasChart.data.datasets[0].data = historyData.gas.data;
+        gasChart.update('none');
+        loaded = true;
+      }
+      if (historyData.noise && Array.isArray(historyData.noise.labels) && Array.isArray(historyData.noise.data) && historyData.noise.labels.length > 0) {
+        noiseChart.data.labels = historyData.noise.labels;
+        noiseChart.data.datasets[0].data = historyData.noise.data;
+        noiseChart.update('none');
+        loaded = true;
+      }
+      return loaded;
+    }
+  } catch (e) {
+    console.warn('[History] Could not load history from localStorage:', e);
+  }
+  return false;
+}
+
+function saveHistoryToLocalStorage() {
+  try {
+    var historyData = {
+      temp: {
+        labels: tempChart.data.labels.slice(-10),
+        data: tempChart.data.datasets[0].data.slice(-10)
+      },
+      hum: {
+        labels: humChart.data.labels.slice(-10),
+        data: humChart.data.datasets[0].data.slice(-10)
+      },
+      gas: {
+        labels: gasChart.data.labels.slice(-10),
+        data: gasChart.data.datasets[0].data.slice(-10)
+      },
+      noise: {
+        labels: noiseChart.data.labels.slice(-10),
+        data: noiseChart.data.datasets[0].data.slice(-10)
+      }
+    };
+    localStorage.setItem(CHART_HISTORY_KEY, JSON.stringify(historyData));
+  } catch (e) {
+    console.warn('[History] Could not save history to localStorage:', e);
+  }
+}
+
 // ── Ring buffer history ────────────────────────────────────────────────────────
-var _historyLoaded = false;   // true once we've fetched the full history
+var _historyLoaded = loadHistoryFromLocalStorage();   // true once we've fetched the full history
 var _historyCount = 0;       // last known count from /data
 
 // Format a Unix timestamp to a short readable time label
@@ -421,10 +489,12 @@ function loadHistory() {
       // Update history status badge
       updateHistoryBadge(data.count, data.interval);
       console.log('[History] Loaded ' + entries.length + ' entries from ring buffer');
+      saveHistoryToLocalStorage();
     })
     .catch(function (err) {
       console.warn('[History] Could not load history:', err);
       _historyLoaded = true; // don't block live updates
+      saveHistoryToLocalStorage();
     });
 }
 
@@ -821,22 +891,6 @@ function updateData() {
 
       banner.style.display = 'none';
 
-      if (dhtOk) {
-        var entry = {
-          time: time,
-          temp: data.temperature,
-          hum: data.humidity,
-          gas: gasOk ? data.gas : null,
-          aqi: data.aqi || -1,
-          tempState: data.alertTempState,
-          humState: data.alertHumState,
-          gasState: data.alertGasState
-        };
-        _sensorHistory.unshift(entry);
-        if (_sensorHistory.length > 100) _sensorHistory.pop();
-        renderSensorHistory();
-      }
-
       var entry = {
         time: time,
         temp: dhtOk ? data.temperature : null,
@@ -919,6 +973,7 @@ function updateData() {
           updateHistoryBadge(newCount, 300);
         }
       }
+      saveHistoryToLocalStorage();
     })
     .catch(function (err) {
       console.error('[updateData] fetch/parse error:', err);
