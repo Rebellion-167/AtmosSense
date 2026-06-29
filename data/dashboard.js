@@ -499,8 +499,10 @@ function loadHistory() {
 }
 
 // Push a single live reading to charts (called after history is loaded)
-function pushLiveReading(dhtOk, gasOk, temp, hum, gas) {
-  var time = new Date().toLocaleTimeString('en-GB');  // HH:MM:SS
+function pushLiveReading(dhtOk, gasOk, temp, hum, gas, time) {
+  if (!time) {
+    time = new Date().toLocaleTimeString('en-GB');  // HH:MM:SS
+  }
 
   var MAX_LIVE = getMaxLivePoints();
 
@@ -877,9 +879,10 @@ function updateData() {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       _lastPolledData = data;
-      var time = new Date().toLocaleTimeString();
+      var time = new Date().toLocaleTimeString('en-GB');
       var dhtOk = data.dhtConnected !== false;
       var gasOk = data.gasConnected === true;
+      var noiseOk = data.noiseConnected === true;
       var gas = data.gas || 0;
 
       var banner = document.getElementById('warmupBanner');
@@ -896,6 +899,7 @@ function updateData() {
         temp: dhtOk ? data.temperature : null,
         hum: dhtOk ? data.humidity : null,
         gas: gasOk ? data.gas : null,
+        noise: noiseOk ? data.noise : null,
         aqi: data.aqi || -1,
         tempState: data.alertTempState,
         humState: data.alertHumState,
@@ -942,7 +946,6 @@ function updateData() {
         badge.style.background = '#ccc';
       }
 
-      var noiseOk = data.noiseConnected === true;
       document.getElementById('noiseOverlay').classList.toggle('visible', !noiseOk);
       if (noiseOk) {
         drawGauge('noiseGaugeCanvas', data.noise, 0, 120, noiseSectors, 'dB');
@@ -966,7 +969,7 @@ function updateData() {
         loadHistory();
       } else {
         // Push every poll to the chart (5s live updates)
-        pushLiveReading(dhtOk, gasOk, data.temperature, data.humidity, gas);
+        pushLiveReading(dhtOk, gasOk, data.temperature, data.humidity, gas, time);
         // Update badge when ring buffer gains a new persisted entry (every 5 min)
         if (newCount > _historyCount) {
           _historyCount = newCount;
@@ -1202,6 +1205,7 @@ function renderSensorHistory() {
   var t = stats(valid, 'temp');
   var h = stats(valid, 'hum');
   var g = stats(_sensorHistory.filter(function (r) { return r.gas != null && r.gas > 0; }), 'gas');
+  var n = stats(_sensorHistory.filter(function (r) { return r.noise != null && r.noise > 0; }), 'noise');
 
   function row(label, s, unit, decimals) {
     if (!s.last) return '';
@@ -1223,20 +1227,72 @@ function renderSensorHistory() {
     + row('Temperature', t, '°C', 1)
     + row('Humidity', h, '%', 0)
     + (g.last ? row('Air Quality', g, ' ppm', 0) : '')
+    + (n.last ? row('Noise Level', n, ' dB', 0) : '')
     + '</tbody></table>';
 }
 
 function exportChartData() {
-  var labels = tempChart.data.labels;
-  var rows = ['Time,Temperature (' + tempUnitLabel() + '),Humidity (%),Air Quality (ppm)'];
-  for (var i = 0; i < labels.length; i++) {
-    rows.push([
-      labels[i],
-      tempChart.data.datasets[0].data[i] ?? '',
-      humChart.data.datasets[0].data[i] ?? '',
-      gasChart.data.datasets[0].data[i] ?? ''
-    ].join(','));
+  var dataByTime = {};
+  var times = [];
+  var seen = {};
+
+  function addTimes(labels) {
+    for (var i = 0; i < labels.length; i++) {
+      var t = labels[i];
+      if (!seen[t]) {
+        seen[t] = true;
+        times.push(t);
+      }
+    }
   }
+
+  addTimes(tempChart.data.labels);
+  addTimes(humChart.data.labels);
+  addTimes(gasChart.data.labels);
+  addTimes(noiseChart.data.labels);
+
+  // Parse time parts for chronological sorting (handling formats HH:MM and HH:MM:SS)
+  times.sort(function (a, b) {
+    var aParts = a.split(':').map(Number);
+    var bParts = b.split(':').map(Number);
+    for (var i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      var aVal = aParts[i] || 0;
+      var bVal = bParts[i] || 0;
+      if (aVal !== bVal) return aVal - bVal;
+    }
+    return 0;
+  });
+
+  function collectChartData(chart, key) {
+    var labels = chart.data.labels;
+    var dataset = chart.data.datasets[0].data;
+    for (var i = 0; i < labels.length; i++) {
+      var time = labels[i];
+      var val = dataset[i];
+      if (!dataByTime[time]) {
+        dataByTime[time] = { temp: null, hum: null, gas: null, noise: null };
+      }
+      dataByTime[time][key] = val;
+    }
+  }
+
+  collectChartData(tempChart, 'temp');
+  collectChartData(humChart, 'hum');
+  collectChartData(gasChart, 'gas');
+  collectChartData(noiseChart, 'noise');
+
+  var placeholder = 'N/A';
+  var rows = ['Time,Temperature (' + tempUnitLabel() + '),Humidity (%),Air Quality (ppm),Noise Level (dB)'];
+  for (var i = 0; i < times.length; i++) {
+    var t = times[i];
+    var d = dataByTime[t];
+    var tempVal = (d && d.temp !== null && d.temp !== undefined) ? d.temp : placeholder;
+    var humVal = (d && d.hum !== null && d.hum !== undefined) ? d.hum : placeholder;
+    var gasVal = (d && d.gas !== null && d.gas !== undefined) ? d.gas : placeholder;
+    var noiseVal = (d && d.noise !== null && d.noise !== undefined) ? d.noise : placeholder;
+    rows.push([t, tempVal, humVal, gasVal, noiseVal].join(','));
+  }
+
   var blob = new Blob([rows.join('\r\n')], { type: 'text/csv' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
