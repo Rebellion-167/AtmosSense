@@ -16,9 +16,13 @@ float readTemperature();
 // Read relative humidity in %; returns -999.0 if not ready or read failed
 float readHumidity();
 
-// Read MQ-135 gas concentration in ppm (CO2-equivalent)
+// Read MQ-135 VOC concentration in ppm
 // Returns -999.0 if sensor not connected or reading invalid
-float readGas();
+float readVoc();
+
+// Read MQ-135 normalized VOC resistance ratio (Rs/R0)
+// Returns -999.0 if sensor not connected or reading invalid
+float readVocNormalized();
 
 // True once warmup is complete
 bool sensorWarmedUp();

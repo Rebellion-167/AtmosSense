@@ -9,7 +9,7 @@ static AlertLevel _level = ALERT_NONE;
 static const char *_reason = "All parameters normal";
 static int _tempState = -1;
 static int _humState = -1;
-static int _gasState = -1;
+static int _vocState = -1;
 static int _noiseState = -1;
 
 static void setLeds(bool green, bool yellow, bool red)
@@ -27,9 +27,9 @@ void alertBegin()
     setLeds(false, false, false);
 }
 
-AlertLevel alertUpdate(float temp, float hum, float gas, float noise = -999.0f)
+AlertLevel alertUpdate(float temp, float hum, float voc, float noise = -999.0f)
 {
-    int tempState = -1, humState = -1, gasState = -1;
+    int tempState = -1, humState = -1, vocState = -1;
 
     // Temperature — direct raw thresholds, no heat index
     if (temp != -999.0f)
@@ -70,15 +70,15 @@ AlertLevel alertUpdate(float temp, float hum, float gas, float noise = -999.0f)
             humState = 0;
     }
 
-    // Gas
-    if (gas != -999.0f && gas > 0)
+    // VOC
+    if (voc != -999.0f && voc > 0)
     {
-        if (gas >= GAS_DANGER_PPM)
-            gasState = 2;
-        else if (gas >= GAS_SAFE_PPM)
-            gasState = 1;
+        if (voc >= VOC_DANGER_PPM)
+            vocState = 2;
+        else if (voc >= VOC_SAFE_PPM)
+            vocState = 1;
         else
-            gasState = 0;
+            vocState = 0;
     }
 
     int noiseState = -1;
@@ -95,12 +95,12 @@ AlertLevel alertUpdate(float temp, float hum, float gas, float noise = -999.0f)
     _noiseState = noiseState;
     _tempState = tempState;
     _humState = humState;
-    _gasState = gasState;
+    _vocState = vocState;
 
     // Count connected sensors
     int connected = 0, safe = 0, danger = 0;
-    int states[4] = {tempState, humState, gasState, noiseState};
-    const char *names[4] = {"Temperature", "Humidity", "Air quality", "Noise"};
+    int states[4] = {tempState, humState, vocState, noiseState};
+    const char *names[4] = {"Temperature", "Humidity", "VOC", "Noise"};
 
     for (int i = 0; i < 4; i++)
     {
@@ -169,7 +169,7 @@ AlertLevel alertGetLevel() { return _level; }
 const char *alertGetReason() { return _reason; }
 int alertGetTempState() { return _tempState; }
 int alertGetHumState() { return _humState; }
-int alertGetGasState() { return _gasState; }
+int alertGetVocState() { return _vocState; }
 float alertGetFeelsLike() { return _feelsLike; }
 const char *alertGetComfortLabel() { return _comfortLabel; }
 int alertGetNoiseState() { return _noiseState; }

@@ -18,7 +18,7 @@ void historyBegin() {
         _buf[i].timestamp = 0;
         _buf[i].temp      = -999.0f;
         _buf[i].hum       = -999.0f;
-        _buf[i].gas       = -999.0f;
+        _buf[i].voc       = -999.0f;
     }
     _head     = 0;
     _count    = 0;
@@ -27,7 +27,7 @@ void historyBegin() {
                   HISTORY_SLOTS, HISTORY_INTERVAL_S);
 }
 
-void historyTick(float temp, float hum, float gas) {
+void historyTick(float temp, float hum, float voc) {
     // Throttle: only record once per HISTORY_INTERVAL_S
     unsigned long now = millis();
     if (_lastTickMs != 0 && (now - _lastTickMs) < (unsigned long)(HISTORY_INTERVAL_S * 1000UL)) {
@@ -48,13 +48,13 @@ void historyTick(float temp, float hum, float gas) {
     slot.timestamp = (uint32_t)epoch;
     slot.temp      = temp;
     slot.hum       = hum;
-    slot.gas       = gas;
+    slot.voc       = voc;
 
     _head = (_head + 1) % HISTORY_SLOTS;
     if (_count < HISTORY_SLOTS) _count++;
 
-    Serial.printf("[History] Recorded slot %d/%d — T:%.1f H:%.1f G:%.1f @ %lu\n",
-                  _count, HISTORY_SLOTS, temp, hum, gas, (unsigned long)epoch);
+    Serial.printf("[History] Recorded slot %d/%d — T:%.1f H:%.1f V:%.1f @ %lu\n",
+                  _count, HISTORY_SLOTS, temp, hum, voc, (unsigned long)epoch);
 }
 
 int historyCount() { return _count; }
@@ -73,7 +73,7 @@ int historyGet(HistoryEntry* out, int count) {
 }
 
 size_t historyJsonMaxBytes() {
-    // Each entry: {"t":1234567890,"temp":-999.0,"hum":-999.0,"gas":-999.0},
+    // Each entry: {"t":1234567890,"temp":-999.0,"hum":-999.0,"voc":-999.0},
     // ~60 chars + wrapper ~20 chars
     return (size_t)HISTORY_SLOTS * 70 + 32;
 }
@@ -97,9 +97,9 @@ size_t historyToJson(char* buf, size_t maxBytes) {
         first = false;
 
         int written = snprintf(buf + pos, maxBytes - pos,
-            "{\"t\":%lu,\"temp\":%.1f,\"hum\":%.1f,\"gas\":%.1f}",
+            "{\"t\":%lu,\"temp\":%.1f,\"hum\":%.1f,\"voc\":%.1f}",
             (unsigned long)e.timestamp,
-            e.temp, e.hum, e.gas);
+            e.temp, e.hum, e.voc);
 
         if (written > 0) pos += (size_t)written;
     }

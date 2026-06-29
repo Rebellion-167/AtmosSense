@@ -16,9 +16,9 @@
 #define HUM_SAFE_HI     60.0f
 #define HUM_WARN_LO     30.0f
 #define HUM_WARN_HI     70.0f
-// Gas ppm (CO2-equivalent)
-#define GAS_SAFE_PPM     800.0f
-#define GAS_DANGER_PPM  1200.0f
+// VOC ppm
+#define VOC_SAFE_PPM     800.0f
+#define VOC_DANGER_PPM  1200.0f
 // Noise dB SPL
 #define NOISE_SAFE_DB    70.0f
 #define NOISE_WARN_DB    85.0f
@@ -31,12 +31,12 @@ typedef enum {
 } AlertLevel;
 
 void        alertBegin();
-AlertLevel  alertUpdate(float temp, float hum, float gas, float noise);
+AlertLevel  alertUpdate(float temp, float hum, float voc, float noise);
 AlertLevel  alertGetLevel();
 const char* alertGetReason();
 int         alertGetTempState(); // 0=safe, 1=warning, 2=danger, -1=not connected
 int         alertGetHumState();
-int         alertGetGasState();
+int         alertGetVocState();
 float       alertGetFeelsLike();    // Heat index feels-like temp in °C
 const char* alertGetComfortLabel(); // "Comfortable", "Warm", "Hot" etc.
 int alertGetNoiseState();

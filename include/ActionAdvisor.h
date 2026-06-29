@@ -18,8 +18,8 @@ RoomAdvice adviceForTemp(const char* comfortLabel);
 // Generate advice for humidity based on current RH%
 RoomAdvice adviceForHumidity(float humidity);
 
-// Generate advice for gas/air quality based on ppm
-RoomAdvice adviceForGas(float ppm);
+// Generate advice for VOC level based on ppm
+RoomAdvice adviceForVoc(float ppm);
 
 RoomAdvice adviceForNoise(float db);
 

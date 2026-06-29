@@ -79,41 +79,41 @@ RoomAdvice adviceForHumidity(float humidity) {
     };
 }
 
-RoomAdvice adviceForGas(float ppm) {
+RoomAdvice adviceForVoc(float ppm) {
     if (ppm < 0.0f) return {
-        "Sensor Offline",
+        "VOC Sensor Offline",
         "Check gas sensor connection.",
-        "Unable to monitor air quality.",
+        "Unable to monitor VOC levels.",
         0
     };
     if (ppm >= 5000.0f) return {
         "Evacuate Immediately",
         "Leave the room now. Open all doors and windows. Do not re-enter.",
-        "Extremely dangerous air quality. Risk of unconsciousness.",
+        "Extremely dangerous VOC levels. Risk of health issues.",
         2
     };
     if (ppm >= 1200.0f) return {
-        "Dangerous Air Quality",
+        "Dangerous VOC Levels",
         "Open all windows and doors immediately. Identify the source.",
-        "Above 1200 ppm causes headaches, dizziness and breathing difficulty.",
+        "Above 1200 ppm VOC causes headaches, dizziness and breathing difficulty.",
         2
     };
     if (ppm >= 800.0f) return {
-        "Poor Air Quality",
+        "Elevated VOC Levels",
         "Open a window or turn on ventilation. Reduce indoor sources.",
-        "Above 800 ppm reduces focus and causes fatigue over time.",
+        "Above 800 ppm VOC reduces focus and causes fatigue over time.",
         1
     };
     if (ppm >= 600.0f) return {
-        "Air Quality Declining",
+        "VOC Levels Rising",
         "Consider opening a window soon.",
-        "Slightly elevated CO2. Common in closed rooms with multiple people.",
+        "Slightly elevated VOCs. Common in closed spaces with poor ventilation.",
         1
     };
     return {
-        "Air Quality Good",
+        "VOC Levels Good",
         "No action needed.",
-        "CO2 levels are within the healthy range below 800 ppm.",
+        "VOC levels are within the healthy range below 800 ppm.",
         0
     };
 }

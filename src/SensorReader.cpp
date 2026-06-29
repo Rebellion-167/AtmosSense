@@ -184,7 +184,7 @@ float readHumidity()
     return isnan(h) ? -999.0f : h;
 }
 
-float readGas()
+float readVoc()
 {
     int raw = analogRead(MQ135_PIN);
     Serial.printf("[MQ-135] raw=%d vMeasured=%.3f\n", raw, (raw / 4095.0f) * 3.3f);
@@ -206,6 +206,24 @@ float readGas()
     if (ppm > 10000.0f)
         ppm = 10000.0f;
     return ppm;
+}
+
+float readVocNormalized()
+{
+    int raw = analogRead(MQ135_PIN);
+    if (raw < MQ135_MIN_RAW)
+        return -999.0f;
+
+    float vMeasured = (raw / MQ135_ADC_MAX) * MQ135_VREF;
+    float voltage = vMeasured / MQ135_DIVIDER_SCALE;
+    if (voltage <= 0.0f)
+        return -999.0f;
+
+    float rs = MQ135_RL * (MQ135_VREF - voltage) / voltage;
+    if (rs <= 0.0f)
+        return -999.0f;
+
+    return rs / MQ135_R0;
 }
 
 bool sensorWarmedUp() { return _ready; }

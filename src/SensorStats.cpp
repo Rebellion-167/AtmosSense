@@ -7,8 +7,8 @@ static float _minTemp =  FLT_MAX;
 static float _maxTemp = -FLT_MAX;
 static float _minHum  =  FLT_MAX;
 static float _maxHum  = -FLT_MAX;
-static float _minGas  =  FLT_MAX;
-static float _maxGas  = -FLT_MAX;
+static float _minVoc  =  FLT_MAX;
+static float _maxVoc  = -FLT_MAX;
 static float _minNoise =  FLT_MAX;
 static float _maxNoise = -FLT_MAX;
 
@@ -27,13 +27,13 @@ static void resetStats() {
     _maxTemp = -FLT_MAX;
     _minHum  =  FLT_MAX;
     _maxHum  = -FLT_MAX;
-    _minGas  =  FLT_MAX;
-    _maxGas  = -FLT_MAX;
+    _minVoc  =  FLT_MAX;
+    _maxVoc  = -FLT_MAX;
     _minNoise =  FLT_MAX;
     _maxNoise = -FLT_MAX;
 }
 
-void statsUpdate(float temp, float hum, float gas, float noise) {
+void statsUpdate(float temp, float hum, float voc, float noise) {
     if (temp != -999.0f) {
         if (temp < _minTemp) _minTemp = temp;
         if (temp > _maxTemp) _maxTemp = temp;
@@ -42,9 +42,9 @@ void statsUpdate(float temp, float hum, float gas, float noise) {
         if (hum < _minHum) _minHum = hum;
         if (hum > _maxHum) _maxHum = hum;
     }
-    if (gas != -999.0f && gas > 0) {
-        if (gas < _minGas) _minGas = gas;
-        if (gas > _maxGas) _maxGas = gas;
+    if (voc != -999.0f && voc > 0) {
+        if (voc < _minVoc) _minVoc = voc;
+        if (voc > _maxVoc) _maxVoc = voc;
     }
     if (noise != -999.0f && noise > 0) {
         if (noise < _minNoise) _minNoise = noise;
@@ -56,8 +56,8 @@ float statsMinTemp() { return _minTemp ==  FLT_MAX ? -1 : _minTemp; }
 float statsMaxTemp() { return _maxTemp == -FLT_MAX ? -1 : _maxTemp; }
 float statsMinHum()  { return _minHum  ==  FLT_MAX ? -1 : _minHum;  }
 float statsMaxHum()  { return _maxHum  == -FLT_MAX ? -1 : _maxHum;  }
-float statsMinGas()  { return _minGas  ==  FLT_MAX ? -1 : _minGas;  }
-float statsMaxGas()  { return _maxGas  == -FLT_MAX ? -1 : _maxGas;  }
+float statsMinVoc()  { return _minVoc  ==  FLT_MAX ? -1 : _minVoc;  }
+float statsMaxVoc()  { return _maxVoc  == -FLT_MAX ? -1 : _maxVoc;  }
 float statsMinNoise() { return _minNoise ==  FLT_MAX ? -1 : _minNoise; }
 float statsMaxNoise() { return _maxNoise == -FLT_MAX ? -1 : _maxNoise; }
 

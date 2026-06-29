@@ -39,14 +39,14 @@ void oledSensorsWarmingUp(int percent);
 
 // Update sensor data cache and redraw current page — call every poll cycle
 void oledSetData(const char* room,
-                 float temp,      float hum,          float gas,   float noise,
+                 float temp,      float hum,          float voc,   float vocNormalized, float noise,
                  float feelsLike, const char* comfortLabel,
                  int   aqi,
                  float minTemp,   float maxTemp,
                  float minHum,    float maxHum,
-                 float minGas,    float maxGas,
+                 float minVoc,    float maxVoc,
                  float minNoise,  float maxNoise,
-                 int   tempState, int humState, int gasState, int noiseState);
+                 int   tempState, int humState, int vocState, int noiseState);
 
 // Update system info cache (IP, uptime) — call once after WiFi connects,
 // then periodically (e.g. every minute) to keep uptime fresh

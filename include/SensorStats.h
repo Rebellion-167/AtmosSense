@@ -5,15 +5,15 @@
 void statsBegin();
 
 // Call on every new sensor reading to update min/max
-void  statsUpdate(float temp, float hum, float gas = -999.0f, float noise = -999.0f);
+void  statsUpdate(float temp, float hum, float voc = -999.0f, float noise = -999.0f);
 
 // Getters
 float statsMinTemp();
 float statsMaxTemp();
 float statsMinHum();
 float statsMaxHum();
-float statsMinGas();
-float statsMaxGas();
+float statsMinVoc();
+float statsMaxVoc();
 float statsMinNoise();
 float statsMaxNoise();
 

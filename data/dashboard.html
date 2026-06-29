@@ -98,13 +98,13 @@
           <div class="alert-panel-action" id="humAlertAction">Waiting for sensor...</div>
         </div>
       </div>
-      <div class="alert-panel state-unknown" id="gasAlertBox">
+      <div class="alert-panel state-unknown" id="vocAlertBox">
         <div class="alert-panel-icon">&#127807;</div>
         <div class="alert-panel-body">
-          <div class="alert-panel-param">Air Quality</div>
-          <div class="alert-panel-reading" id="gasGaugeValue">--</div>
-          <div class="alert-panel-title" id="gasAlertStatus">--</div>
-          <div class="alert-panel-action" id="gasAlertAction">Waiting for sensor...</div>
+          <div class="alert-panel-param">VOC</div>
+          <div class="alert-panel-reading" id="vocGaugeValue">--</div>
+          <div class="alert-panel-title" id="vocAlertStatus">--</div>
+          <div class="alert-panel-action" id="vocAlertAction">Waiting for sensor...</div>
         </div>
       </div>
       <div class="alert-panel state-unknown" id="noiseAlertBox">
@@ -213,30 +213,34 @@
           <div class="canvas-wrap"><canvas id="humChart"></canvas></div>
         </div>
 
-        <!-- Air Quality -->
+        <!-- VOC -->
         <div class="gauge-card">
-          <div class="card-title">&#127807; Air Quality (ppm)</div>
-          <div class="sensor-overlay" id="gasOverlay">&#128268; Sensor not detected</div>
-          <canvas id="gasGaugeCanvas" class="gauge" width="300" height="220"></canvas>
+          <div class="card-title">&#127807; VOC (ppm)</div>
+          <div class="sensor-overlay" id="vocOverlay">&#128268; Sensor not detected</div>
+          <canvas id="vocGaugeCanvas" class="gauge" width="300" height="220"></canvas>
           <div class="status-box">
-            <div class="status-label" id="gasLabel">--</div>
-            <div class="status-desc" id="gasDesc">Waiting for data...</div>
+            <div class="status-label" id="vocLabel">--</div>
+            <div class="status-desc" id="vocDesc">Waiting for data...</div>
             <div class="aqi-row">
-              <span class="aqi-row-label">Indoor Air Index</span>
+              <span class="aqi-row-label">VOC Index</span>
               <span class="aqi-badge" id="indoorAqiBadge">--</span>
+            </div>
+            <div class="aqi-row" style="margin-top: 8px;">
+              <span class="aqi-row-label">VOC Normalized (Rs/R0)</span>
+              <span class="aqi-badge" id="vocNormalizedBadge">--</span>
             </div>
           </div>
           <div class="minmax-strip">
             <div class="minmax-item"><span class="minmax-icon">&#8595;</span><span class="minmax-label">Min</span><span
-                class="minmax-value" id="minGas">--</span><span class="minmax-unit">ppm</span></div>
+                class="minmax-value" id="minVoc">--</span><span class="minmax-unit">ppm</span></div>
             <div class="minmax-divider"></div>
             <div class="minmax-item"><span class="minmax-icon">&#8593;</span><span class="minmax-label">Max</span><span
-                class="minmax-value" id="maxGas">--</span><span class="minmax-unit">ppm</span></div>
+                class="minmax-value" id="maxVoc">--</span><span class="minmax-unit">ppm</span></div>
           </div>
         </div>
         <div class="chart-card">
-          <div class="card-title">&#128202; Air Quality History (ppm)</div>
-          <div class="canvas-wrap"><canvas id="gasChart"></canvas></div>
+          <div class="card-title">&#128202; VOC History (ppm)</div>
+          <div class="canvas-wrap"><canvas id="vocChart"></canvas></div>
         </div>
         <!-- Noise -->
         <div class="gauge-card">

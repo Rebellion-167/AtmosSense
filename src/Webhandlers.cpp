@@ -46,26 +46,28 @@ static void handleData()
 {
     float temp = readTemperature();
     float hum = readHumidity();
-    float gas = readGas();
+    float voc = readVoc();
+    float vocNorm = readVocNormalized();
     float noise = readNoise();
     bool noiseReady = (noise != -999.0f);
 
     bool warmedUp = sensorWarmedUp();
     bool dhtReady = (temp != -999.0f && hum != -999.0f);
-    bool gasReady = (gas != -999.0f && gas > 0);
+    bool vocReady = (voc != -999.0f && voc > 0);
 
     if (dhtReady)
     {
-        statsUpdate(temp, hum, gas, noise);
-        alertUpdate(temp, hum, gas, noise);
-        historyTick(temp, dhtReady ? hum : -999.0f, gasReady ? gas : -999.0f);
+        statsUpdate(temp, hum, voc, noise);
+        alertUpdate(temp, hum, voc, noise);
+        historyTick(temp, dhtReady ? hum : -999.0f, vocReady ? voc : -999.0f);
     }
 
     float tDisplay = dhtReady ? temp : 0.0f;
     float hDisplay = dhtReady ? hum : 0.0f;
-    float gDisplay = gasReady ? gas : 0.0f;
+    float vDisplay = vocReady ? voc : 0.0f;
+    float vNormDisplay = vocReady ? vocNorm : 0.0f;
     float nDisplay = noiseReady ? noise : 0.0f;
-    int aqi = ppmToAqi(gasReady ? gas : 0);
+    int aqi = ppmToAqi(vocReady ? voc : 0);
     int alertLvl = (int)alertGetLevel();
 
     const char *reason = alertGetReason();
@@ -73,7 +75,7 @@ static void handleData()
 
     RoomAdvice tAdv = adviceForTemp(comfortLabel ? comfortLabel : "Comfortable");
     RoomAdvice hAdv = adviceForHumidity(dhtReady ? hum : -1.0f);
-    RoomAdvice gAdv = adviceForGas(gasReady ? gas : -1.0f);
+    RoomAdvice vAdv = adviceForVoc(vocReady ? voc : -1.0f);
     RoomAdvice nAdv = adviceForNoise(noiseReady ? noise : -1.0f);
 
     const char *tTitle  = tAdv.title  ? tAdv.title  : "";
@@ -82,9 +84,9 @@ static void handleData()
     const char *hTitle  = hAdv.title  ? hAdv.title  : "";
     const char *hAction = hAdv.action ? hAdv.action : "";
     const char *hReason = hAdv.reason ? hAdv.reason : "";
-    const char *gTitle  = gAdv.title  ? gAdv.title  : "";
-    const char *gAction = gAdv.action ? gAdv.action : "";
-    const char *gReason = gAdv.reason ? gAdv.reason : "";
+    const char *vTitle  = vAdv.title  ? vAdv.title  : "";
+    const char *vAction = vAdv.action ? vAdv.action : "";
+    const char *vReason = vAdv.reason ? vAdv.reason : "";
     const char *nTitle  = nAdv.title  ? nAdv.title  : "";
     const char *nAction = nAdv.action ? nAdv.action : "";
     const char *nReason = nAdv.reason ? nAdv.reason : "";
@@ -94,11 +96,12 @@ static void handleData()
              "{"
              "\"ready\":%s,"
              "\"dhtConnected\":%s,"
-             "\"gasConnected\":%s,"
+             "\"vocConnected\":%s,"
              "\"noiseConnected\":%s,"
              "\"temperature\":%.1f,"
              "\"humidity\":%.1f,"
-             "\"gas\":%.1f,"
+             "\"voc\":%.1f,"
+             "\"vocNormalized\":%.3f,"
              "\"noise\":%.1f,"
              "\"aqi\":%d,"
              "\"feelsLike\":%.1f,"
@@ -107,38 +110,38 @@ static void handleData()
              "\"alertReason\":\"%s\","
              "\"alertTempState\":%d,"
              "\"alertHumState\":%d,"
-             "\"alertGasState\":%d,"
+             "\"alertVocState\":%d,"
              "\"alertNoiseState\":%d,"
              "\"tempAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"humAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
-             "\"gasAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
+             "\"vocAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"noiseAdvice\":{\"title\":\"%s\",\"action\":\"%s\",\"reason\":\"%s\",\"urgency\":%d},"
              "\"minTemp\":%.1f,"
              "\"maxTemp\":%.1f,"
              "\"minHum\":%.1f,"
              "\"maxHum\":%.1f,"
-             "\"minGas\":%.1f,"
-             "\"maxGas\":%.1f,"
+             "\"minVoc\":%.1f,"
+             "\"maxVoc\":%.1f,"
              "\"minNoise\":%.1f,"
              "\"maxNoise\":%.1f,"
              "\"historyCount\":%d"
              "}",
              warmedUp ? "true" : "false",
              dhtReady ? "true" : "false",
-             gasReady ? "true" : "false",
+             vocReady ? "true" : "false",
              noiseReady ? "true" : "false",
-             tDisplay, hDisplay, gDisplay, nDisplay,
+             tDisplay, hDisplay, vDisplay, vNormDisplay, nDisplay,
              aqi,
              alertGetFeelsLike(), comfortLabel ? comfortLabel : "",
              alertLvl, reason,
-             alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState(),
+             alertGetTempState(), alertGetHumState(), alertGetVocState(), alertGetNoiseState(),
              tTitle, tAction, tReason, tAdv.urgency,
              hTitle, hAction, hReason, hAdv.urgency,
-             gTitle, gAction, gReason, gAdv.urgency,
+             vTitle, vAction, vReason, vAdv.urgency,
              nTitle, nAction, nReason, nAdv.urgency,
              statsMinTemp(), statsMaxTemp(),
              statsMinHum(),  statsMaxHum(),
-             statsMinGas(),  statsMaxGas(),
+             statsMinVoc(),  statsMaxVoc(),
              statsMinNoise(), statsMaxNoise(),
              historyCount());
 
@@ -146,14 +149,14 @@ static void handleData()
 
     if (dhtReady)
     {
-        oledSetData(roomGetName(), temp, hum, gas, noise,
+        oledSetData(roomGetName(), temp, hum, voc, vocNorm, noise,
                     alertGetFeelsLike(), comfortLabel ? comfortLabel : "",
                     aqi,
                     statsMinTemp(), statsMaxTemp(),
                     statsMinHum(),  statsMaxHum(),
-                    statsMinGas(),  statsMaxGas(),
+                    statsMinVoc(),  statsMaxVoc(),
                     statsMinNoise(), statsMaxNoise(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+                    alertGetTempState(), alertGetHumState(), alertGetVocState(), alertGetNoiseState());
     }
 }
 
@@ -208,17 +211,18 @@ static void handleClimate()
 
     float t = readTemperature();
     float h = readHumidity();
-    float _g = readGas();
+    float _g = readVoc();
+    float _gNorm = readVocNormalized();
     float _n = readNoise();
     if (t != -999.0f && h != -999.0f)
     {
-        oledSetData(roomGetName(), t, h, _g, _n,
+        oledSetData(roomGetName(), t, h, _g, _gNorm, _n,
                     alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
                     statsMinTemp(), statsMaxTemp(),
                     statsMinHum(), statsMaxHum(),
-                    statsMinGas(), statsMaxGas(),
+                    statsMinVoc(), statsMaxVoc(),
                     statsMinNoise(), statsMaxNoise(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+                    alertGetTempState(), alertGetHumState(), alertGetVocState(), alertGetNoiseState());
     }
 
     _server->send(200, "text/plain", "OK");
@@ -244,17 +248,18 @@ static void handleRoomNamePost()
 
     float t = readTemperature();
     float h = readHumidity();
-    float _g = readGas();
+    float _g = readVoc();
+    float _gNorm = readVocNormalized();
     float _n = readNoise();
     if (t != -999.0f && h != -999.0f)
     {
-        oledSetData(roomGetName(), t, h, _g, _n,
+        oledSetData(roomGetName(), t, h, _g, _gNorm, _n,
                     alertGetFeelsLike(), alertGetComfortLabel(), ppmToAqi(_g > 0 ? _g : 0),
                     statsMinTemp(), statsMaxTemp(),
                     statsMinHum(), statsMaxHum(),
-                    statsMinGas(), statsMaxGas(),
+                    statsMinVoc(), statsMaxVoc(),
                     statsMinNoise(), statsMaxNoise(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+                    alertGetTempState(), alertGetHumState(), alertGetVocState(), alertGetNoiseState());
     }
 
     _server->send(200, "text/plain", "OK");
@@ -267,10 +272,10 @@ static void handleExportCsv()
              "Parameter,Current,Min,Max\r\n"
              "Temperature (C),%.1f,%.1f,%.1f\r\n"
              "Humidity (%%),%.1f,%.1f,%.1f\r\n"
-             "Air Quality (ppm),%.1f,%.1f,%.1f\r\n",
+             "VOC (ppm),%.1f,%.1f,%.1f\r\n",
              readTemperature(), statsMinTemp(), statsMaxTemp(),
              readHumidity(), statsMinHum(), statsMaxHum(),
-             readGas(), statsMinGas(), statsMaxGas());
+             readVoc(), statsMinVoc(), statsMaxVoc());
     _server->sendHeader("Content-Disposition", "attachment; filename=\"atmossense.csv\"");
     _server->send(200, "text/csv", csv);
 }

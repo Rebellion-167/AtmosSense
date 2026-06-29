@@ -12,14 +12,14 @@ struct HistoryEntry {
     uint32_t timestamp;  // Unix epoch (0 = empty slot)
     float    temp;       // °C,  -999 = no reading
     float    hum;        // %,   -999 = no reading
-    float    gas;        // ppm, -999 = no reading
+    float    voc;        // ppm, -999 = no reading
 };
 
 // Call once after NTP is synced
 void historyBegin();
 
 // Call every loop() — internally throttled to HISTORY_INTERVAL_S
-void historyTick(float temp, float hum, float gas);
+void historyTick(float temp, float hum, float voc);
 
 // Write up to `count` most-recent entries (newest first) into `out`.
 // Returns actual number of entries written (may be less than count if buffer not full).

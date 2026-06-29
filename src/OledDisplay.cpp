@@ -16,16 +16,17 @@ static bool _ready = false;
 static char  _room[32]    = "Room";
 static float _temp        = NAN;
 static float _hum         = NAN;
-static float _gas         = -999.f;
+static float _voc         = -999.f;
+static float _vocNormalized = -999.f;
 static float _feelsLike   = NAN;
 static char  _comfort[20] = "--";
 static int   _aqi         = 0;
 static float _minTemp     = NAN,    _maxTemp = NAN;
 static float _minHum      = NAN,    _maxHum  = NAN;
-static float _minGas      = -999.f, _maxGas  = -999.f;
+static float _minVoc      = -999.f, _maxVoc  = -999.f;
 static int   _tempState   = -1;
 static int   _humState    = -1;
-static int   _gasState    = -1;
+static int   _vocState    = -1;
 static float _noise    = -999.f;
 static float _minNoise = -999.f, _maxNoise = -999.f;
 static int   _noiseState = -1;
@@ -129,8 +130,8 @@ static void drawPageDanger() {
         snprintf(buf, sizeof(buf), "Humidity: %.0f%%", _hum);
         _disp.setCursor(0, y); _disp.print(buf); y += 10;
     }
-    if (_gasState == 2 && _gas > 0) {
-        snprintf(buf, sizeof(buf), "Air: %.0fppm", _gas);
+    if (_vocState == 2 && _voc > 0) {
+        snprintf(buf, sizeof(buf), "VOC: %.0fppm", _voc);
         _disp.setCursor(0, y); _disp.print(buf); y += 10;
     }
 
@@ -157,7 +158,7 @@ static int getComfortLevel() {
     int worstState = 0;
     if (_tempState > worstState) worstState = _tempState;
     if (_humState > worstState) worstState = _humState;
-    if (_gasState > worstState) worstState = _gasState;
+    if (_vocState > worstState) worstState = _vocState;
     if (_noiseState > worstState) worstState = _noiseState;
     return worstState;
 }
@@ -249,10 +250,10 @@ static void drawPageOverview() {
     else              strcpy(buf, "--");
     _disp.print(buf);
 
-    // Air Quality / IAI
+    // VOC / IAI
     _disp.setCursor(65, 38);
-    _disp.print("A:");
-    if (_gas > 0) snprintf(buf, sizeof(buf), "%d", _aqi);
+    _disp.print("V:");
+    if (_voc > 0) snprintf(buf, sizeof(buf), "%d", _aqi);
     else          strcpy(buf, "--");
     _disp.print(buf);
 
@@ -338,47 +339,47 @@ static void drawPageHum() {
     if (_humState == 1) { hline(56); drawWarningStripe(); }
 }
 
-// ── Page 3 — Air Quality detail ───────────────────────────────────────────────
-static void drawPageGas() {
+// ── Page 3 — VOC detail ───────────────────────────────────────────────
+static void drawPageVoc() {
     char buf[20];
 
     _disp.setTextSize(1);
     _disp.setCursor(0, 0);
-    _disp.print("AIR QUALITY");
+    _disp.print("VOC");
     drawDots();
     hline(10);
 
-    if (_gas <= 0) {
+    if (_voc <= 0) {
         _disp.setCursor(0, 28); _disp.print("Sensor not");
         _disp.setCursor(0, 40); _disp.print("connected");
         return;
     }
 
-    snprintf(buf, sizeof(buf), "%.0fppm", _gas);
+    snprintf(buf, sizeof(buf), "%.0fppm", _voc);
     _disp.setTextSize(2);
     _disp.setCursor(0, 13);
     _disp.print(buf);
 
     _disp.setTextSize(1);
-    printRight(stateStr(_gasState), 20, 1);
+    printRight(stateStr(_vocState), 20, 1);
     hline(32);
 
     _disp.setTextSize(1);
     _disp.setCursor(0, 35);
-    _disp.print("IAI:");
-    snprintf(buf, sizeof(buf), "%d", _aqi);
+    _disp.print("Norm:");
+    snprintf(buf, sizeof(buf), "%.2f", _vocNormalized);
     printRight(buf, 35, 1);
     hline(44);
 
     _disp.setCursor(0, 47);
-    if (_minGas > 0) snprintf(buf, sizeof(buf), "Lo:%.0fppm", _minGas);
+    if (_minVoc > 0) snprintf(buf, sizeof(buf), "Lo:%.0fppm", _minVoc);
     else             snprintf(buf, sizeof(buf), "Lo:--");
     _disp.print(buf);
-    if (_maxGas > 0) snprintf(buf, sizeof(buf), "Hi:%.0fppm", _maxGas);
+    if (_maxVoc > 0) snprintf(buf, sizeof(buf), "Hi:%.0fppm", _maxVoc);
     else             snprintf(buf, sizeof(buf), "Hi:--");
     printRight(buf, 47, 1);
 
-    if (_gasState == 1) { hline(56); drawWarningStripe(); }
+    if (_vocState == 1) { hline(56); drawWarningStripe(); }
 }
 
 // Page 4 - Noise Level
@@ -469,7 +470,7 @@ static void drawPageSystem() {
 
 
 static bool anyDanger() {
-    return (_tempState == 2 || _humState == 2 || _gasState == 2);
+    return (_tempState == 2 || _humState == 2 || _vocState == 2);
 }
 
 // ── Redraw dispatcher ─────────────────────────────────────────────────────────
@@ -486,7 +487,7 @@ static void redraw() {
         case 0: drawPageOverview(); break;
         case 1: drawPageTemp();     break;
         case 2: drawPageHum();      break;
-        case 3: drawPageGas();      break;
+        case 3: drawPageVoc();      break;
         case 4: drawPageNoise();    break;
         case 5: drawPageSystem();   break;
     }
@@ -638,24 +639,25 @@ void oledBegin() {
 }
 
 void oledSetData(const char* room,
-                 float temp,      float hum,          float gas,   float noise,
+                 float temp,      float hum,          float voc,   float vocNormalized, float noise,
                  float feelsLike, const char* comfortLabel,
                  int   aqi,
                  float minTemp,   float maxTemp,
                  float minHum,    float maxHum,
-                 float minGas,    float maxGas,
+                 float minVoc,    float maxVoc,
                  float minNoise,  float maxNoise,
-                 int   tempState, int humState, int gasState, int noiseState)
+                 int   tempState, int humState, int vocState, int noiseState)
 {
     strncpy(_room,    room          ? room          : "Room", sizeof(_room)    - 1);
     strncpy(_comfort, comfortLabel  ? comfortLabel  : "--",   sizeof(_comfort) - 1);
-    _temp = temp; _hum = hum; _gas = gas;
+    _temp = temp; _hum = hum; _voc = voc;
+    _vocNormalized = vocNormalized;
     _feelsLike = feelsLike;
     _aqi = aqi;
     _minTemp = minTemp; _maxTemp = maxTemp;
     _minHum  = minHum;  _maxHum  = maxHum;
-    _minGas  = minGas;  _maxGas  = maxGas;
-    _tempState = tempState; _humState = humState; _gasState = gasState;
+    _minVoc  = minVoc;  _maxVoc  = maxVoc;
+    _tempState = tempState; _humState = humState; _vocState = vocState;
     _noise = noise; _minNoise = minNoise; _maxNoise = maxNoise;
     _noiseState = noiseState;
 

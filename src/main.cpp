@@ -77,28 +77,29 @@ void setup() {
 void performSensorUpdate() {
     float temp = readTemperature();
     float hum = readHumidity();
-    float gas = readGas();
+    float voc = readVoc();
+    float vocNorm = readVocNormalized();
     float noise = readNoise();
     
     bool dhtReady = (temp != -999.0f && hum != -999.0f);
-    bool gasReady = (gas != -999.0f && gas > 0);
+    bool vocReady = (voc != -999.0f && voc > 0);
     
     if (dhtReady) {
-        statsUpdate(temp, hum, gas, noise);
-        alertUpdate(temp, hum, gas, noise);
-        historyTick(temp, hum, gasReady ? gas : -999.0f);
+        statsUpdate(temp, hum, voc, noise);
+        alertUpdate(temp, hum, voc, noise);
+        historyTick(temp, hum, vocReady ? voc : -999.0f);
         
-        int aqi = ppmToAqi(gasReady ? gas : 0);
+        int aqi = ppmToAqi(vocReady ? voc : 0);
         const char *comfortLabel = alertGetComfortLabel();
         
-        oledSetData(roomGetName(), temp, hum, gas, noise,
+        oledSetData(roomGetName(), temp, hum, voc, vocNorm, noise,
                     alertGetFeelsLike(), comfortLabel ? comfortLabel : "",
                     aqi,
                     statsMinTemp(), statsMaxTemp(),
                     statsMinHum(),  statsMaxHum(),
-                    statsMinGas(),  statsMaxGas(),
+                    statsMinVoc(),  statsMaxVoc(),
                     statsMinNoise(), statsMaxNoise(),
-                    alertGetTempState(), alertGetHumState(), alertGetGasState(), alertGetNoiseState());
+                    alertGetTempState(), alertGetHumState(), alertGetVocState(), alertGetNoiseState());
     }
 }
 

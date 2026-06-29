@@ -110,7 +110,7 @@ var humSectors = [
   { color: '#4fc3f7', lo: 60, hi: 70 },
   { color: '#1a237e', lo: 70, hi: 100 }
 ];
-var gasSectors = [
+var vocSectors = [
   { color: '#2ecc71', lo: 0, hi: 400 },
   { color: '#f39c12', lo: 400, hi: 1000 },
   { color: '#e67e22', lo: 1000, hi: 2000 }
@@ -300,19 +300,19 @@ function humDesc(h) {
   if (h < 70) return 'Approaching uncomfortable levels. Ventilate if possible.';
   return 'Mold and dust-mite risk. Use dehumidifier or ventilate.';
 }
-function gasLabel(g) {
+function vocLabel(g) {
   if (g <= 0) return '&#128268; Sensor not connected';
-  if (g < 400) return '&#127807; Fresh Air';
-  if (g < 1000) return '&#9989; Normal';
-  if (g < 2000) return '&#128168; Poor Air Quality';
-  return '&#9763; Very Poor Air Quality';
+  if (g < 400) return '&#127807; Low VOC';
+  if (g < 1000) return '&#9989; Moderate VOC';
+  if (g < 2000) return '&#128168; High VOC';
+  return '&#9763; Very High VOC';
 }
-function gasDesc(g) {
-  if (g <= 0) return 'MQ-135 sensor not detected. Connect the sensor to enable air quality monitoring.';
-  if (g < 400) return 'Excellent air quality. Better than typical indoor air.';
-  if (g < 1000) return 'Normal indoor air quality. No action needed.';
-  if (g < 2000) return 'Air quality is poor. Open windows and ventilate the room.';
-  return 'Dangerous air quality. Ventilate immediately.';
+function vocDesc(g) {
+  if (g <= 0) return 'MQ-135 sensor not detected. Connect the sensor to enable VOC monitoring.';
+  if (g < 400) return 'Low VOC levels. Air is fresh.';
+  if (g < 1000) return 'Moderate VOC levels. No action needed.';
+  if (g < 2000) return 'High VOC levels. Open windows and ventilate the room.';
+  return 'Dangerous VOC levels. Ventilate immediately.';
 }
 function aqiColor(aqi) {
   if (aqi < 0) return '#aaa';
@@ -367,9 +367,9 @@ const humChart = new Chart(document.getElementById('humChart'), {
   data: { labels: [], datasets: [{ label: 'Humidity (%)', data: [], borderColor: '#3742fa', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 100 } } })
 });
-const gasChart = new Chart(document.getElementById('gasChart'), {
+const vocChart = new Chart(document.getElementById('vocChart'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Air Quality (ppm)', data: [], borderColor: '#2ed573', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: false }] },
+  data: { labels: [], datasets: [{ label: 'VOC (ppm)', data: [], borderColor: '#2ed573', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: false }] },
   options: Object.assign({}, chartOpts, { scales: { y: { min: 0, max: 2000 } } })
 });
 const noiseChart = new Chart(document.getElementById('noiseChart'), {
@@ -379,7 +379,7 @@ const noiseChart = new Chart(document.getElementById('noiseChart'), {
 });
 
 // ── LocalStorage Chart History ───────────────────────────────────────────────
-var CHART_HISTORY_KEY = 'atmossense.dashboard.chart_history.v1';
+var CHART_HISTORY_KEY = 'atmossense.dashboard.chart_history.v2';
 
 function loadHistoryFromLocalStorage() {
   try {
@@ -400,10 +400,10 @@ function loadHistoryFromLocalStorage() {
         humChart.update('none');
         loaded = true;
       }
-      if (historyData.gas && Array.isArray(historyData.gas.labels) && Array.isArray(historyData.gas.data) && historyData.gas.labels.length > 0) {
-        gasChart.data.labels = historyData.gas.labels;
-        gasChart.data.datasets[0].data = historyData.gas.data;
-        gasChart.update('none');
+      if (historyData.voc && Array.isArray(historyData.voc.labels) && Array.isArray(historyData.voc.data) && historyData.voc.labels.length > 0) {
+        vocChart.data.labels = historyData.voc.labels;
+        vocChart.data.datasets[0].data = historyData.voc.data;
+        vocChart.update('none');
         loaded = true;
       }
       if (historyData.noise && Array.isArray(historyData.noise.labels) && Array.isArray(historyData.noise.data) && historyData.noise.labels.length > 0) {
@@ -431,9 +431,9 @@ function saveHistoryToLocalStorage() {
         labels: humChart.data.labels.slice(-10),
         data: humChart.data.datasets[0].data.slice(-10)
       },
-      gas: {
-        labels: gasChart.data.labels.slice(-10),
-        data: gasChart.data.datasets[0].data.slice(-10)
+      voc: {
+        labels: vocChart.data.labels.slice(-10),
+        data: vocChart.data.datasets[0].data.slice(-10)
       },
       noise: {
         labels: noiseChart.data.labels.slice(-10),
@@ -466,22 +466,22 @@ function loadHistory() {
 
       var tempLabels = [], tempVals = [];
       var humLabels = [], humVals = [];
-      var gasLabels = [], gasVals = [];
+      var vocLabels = [], vocVals = [];
 
       entries.forEach(function (e) {
         var lbl = fmtTime(e.t);
         if (e.temp !== -999) { tempLabels.push(lbl); tempVals.push(displayTemp(e.temp)); }
         if (e.hum !== -999) { humLabels.push(lbl); humVals.push(e.hum); }
-        if (e.gas !== -999) { gasLabels.push(lbl); gasVals.push(e.gas); }
+        if (e.voc !== -999) { vocLabels.push(lbl); vocVals.push(e.voc); }
       });
 
       tempChart.data.labels = tempLabels; tempChart.data.datasets[0].data = tempVals;
       humChart.data.labels = humLabels; humChart.data.datasets[0].data = humVals;
-      gasChart.data.labels = gasLabels; gasChart.data.datasets[0].data = gasVals;
+      vocChart.data.labels = vocLabels; vocChart.data.datasets[0].data = vocVals;
 
       tempChart.update('none');
       humChart.update('none');
-      gasChart.update('none');
+      vocChart.update('none');
 
       _historyLoaded = true;
       _historyCount = entries.length;
@@ -499,7 +499,7 @@ function loadHistory() {
 }
 
 // Push a single live reading to charts (called after history is loaded)
-function pushLiveReading(dhtOk, gasOk, temp, hum, gas, time) {
+function pushLiveReading(dhtOk, vocOk, temp, hum, voc, time) {
   if (!time) {
     time = new Date().toLocaleTimeString('en-GB');  // HH:MM:SS
   }
@@ -517,11 +517,11 @@ function pushLiveReading(dhtOk, gasOk, temp, hum, gas, time) {
 
   pushToChart(tempChart, dhtOk, displayTemp(temp));
   pushToChart(humChart, dhtOk, hum);
-  pushToChart(gasChart, gasOk, gas);
+  pushToChart(vocChart, vocOk, voc);
 
   tempChart.update('none');
   humChart.update('none');
-  gasChart.update('none');
+  vocChart.update('none');
 }
 
 function updateHistoryBadge(count, intervalSec) {
@@ -538,8 +538,8 @@ function updateMinMaxDisplay(data) {
   document.getElementById('maxTemp').textContent = data.maxTemp > 0 ? displayTemp(data.maxTemp).toFixed(1) : '--';
   document.getElementById('minHum').textContent = data.minHum > 0 ? data.minHum.toFixed(1) : '--';
   document.getElementById('maxHum').textContent = data.maxHum > 0 ? data.maxHum.toFixed(1) : '--';
-  document.getElementById('minGas').textContent = data.minGas > 0 ? Math.round(data.minGas) : '--';
-  document.getElementById('maxGas').textContent = data.maxGas > 0 ? Math.round(data.maxGas) : '--';
+  document.getElementById('minVoc').textContent = data.minVoc > 0 ? Math.round(data.minVoc) : '--';
+  document.getElementById('maxVoc').textContent = data.maxVoc > 0 ? Math.round(data.maxVoc) : '--';
   document.getElementById('minNoise').textContent = data.minNoise > 0 ? data.minNoise.toFixed(0) : '--';
   document.getElementById('maxNoise').textContent = data.maxNoise > 0 ? data.maxNoise.toFixed(0) : '--';
 }
@@ -577,12 +577,12 @@ function updateParamAlerts(data) {
     setPanel('humAlertBox', 'humAlertStatus', 'humAlertAction', hState, ha.title || '', ha.action || '');
   }
 
-  if (!data.gasConnected) {
-    setPanel('gasAlertBox', 'gasAlertStatus', 'gasAlertAction', 'unknown', 'No Sensor', 'Check MQ-135 connection.');
+  if (!data.vocConnected) {
+    setPanel('vocAlertBox', 'vocAlertStatus', 'vocAlertAction', 'unknown', 'No Sensor', 'Check MQ-135 connection.');
   } else {
-    var ga = data.gasAdvice || {};
-    var gState = data.alertGasState === 2 ? 'danger' : data.alertGasState === 1 ? 'warning' : 'normal';
-    setPanel('gasAlertBox', 'gasAlertStatus', 'gasAlertAction', gState, ga.title || '', ga.action || '');
+    var ga = data.vocAdvice || {};
+    var gState = data.alertVocState === 2 ? 'danger' : data.alertVocState === 1 ? 'warning' : 'normal';
+    setPanel('vocAlertBox', 'vocAlertStatus', 'vocAlertAction', gState, ga.title || '', ga.action || '');
   }
   // Noise
   if (!data.noiseConnected) {
@@ -608,7 +608,7 @@ function switchTab(name) {
   document.getElementById('tabBtnHistory').classList.toggle('active', name === 'history');
   document.getElementById('tabBtnSettings').classList.toggle('active', name === 'settings');
   if (name === 'overview') {
-    setTimeout(function () { tempChart.resize(); humChart.resize(); gasChart.resize(); noiseChart.resize();}, 50);
+    setTimeout(function () { tempChart.resize(); humChart.resize(); vocChart.resize(); noiseChart.resize();}, 50);
   }
   if (name === 'history') renderSensorHistory();
 }
@@ -769,12 +769,12 @@ function renderActiveAlerts(data) {
       adv.title || '', data.humidity.toFixed(0) + '%',
       adv.action || '', data.alertHumState === 2 ? _dangerTriggeredAt : null));
   }
-  if (data.alertGasState >= 1 && data.gasConnected) {
-    var sev = data.alertGasState === 2 ? 'danger' : 'warning';
-    var adv = data.gasAdvice || {};
-    cards.push(makeCard(sev, '\u{1F33F}', 'Air Quality',
-      adv.title || '', data.gas.toFixed(0) + ' ppm',
-      adv.action || '', data.alertGasState === 2 ? _dangerTriggeredAt : null));
+  if (data.alertVocState >= 1 && data.vocConnected) {
+    var sev = data.alertVocState === 2 ? 'danger' : 'warning';
+    var adv = data.vocAdvice || {};
+    cards.push(makeCard(sev, '\u{1F33F}', 'VOC',
+      adv.title || '', data.voc.toFixed(0) + ' ppm',
+      adv.action || '', data.alertVocState === 2 ? _dangerTriggeredAt : null));
   }
   if (data.alertNoiseState >= 1 && data.noiseConnected) {
     var sev = data.alertNoiseState === 2 ? 'danger' : 'warning';
@@ -815,8 +815,8 @@ function updateDangerBanner(data, time) {
     dangers.push('Temp ' + data.temperature.toFixed(1) + '\u00b0C');
   if (data.alertHumState === 2 && data.dhtConnected)
     dangers.push('Humidity ' + data.humidity.toFixed(0) + '%');
-  if (data.alertGasState === 2 && data.gasConnected)
-    dangers.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+  if (data.alertVocState === 2 && data.vocConnected)
+    dangers.push('VOC ' + data.voc.toFixed(0) + 'ppm');
   if (data.alertNoiseState === 2 && data.noiseConnected)
     dangers.push('Noise ' + data.noise.toFixed(0) + 'dB');
 
@@ -841,7 +841,7 @@ function updateDangerBanner(data, time) {
       var notifBody = [];
       if (data.tempAdvice && data.alertTempState === 2) notifBody.push(data.tempAdvice.action);
       if (data.humAdvice && data.alertHumState === 2) notifBody.push(data.humAdvice.action);
-      if (data.gasAdvice && data.alertGasState === 2) notifBody.push(data.gasAdvice.action);
+      if (data.vocAdvice && data.alertVocState === 2) notifBody.push(data.vocAdvice.action);
       fireBrowserNotification('AtmosSense \u2014 Danger Alert', notifBody.join('\n'));
       addLogEntry('danger',
         (dangers.length === 1 ? 'Danger: ' : 'Multiple Dangers: ') + dangers.join(', '),
@@ -858,7 +858,7 @@ function updateDangerBanner(data, time) {
       var warns = [];
       if (data.alertTempState === 1 && data.dhtConnected) warns.push('Temperature ' + data.temperature.toFixed(1) + '\u00b0C');
       if (data.alertHumState === 1 && data.dhtConnected) warns.push('Humidity ' + data.humidity.toFixed(0) + '%');
-      if (data.alertGasState === 1 && data.gasConnected) warns.push('Air quality ' + data.gas.toFixed(0) + 'ppm');
+      if (data.alertVocState === 1 && data.vocConnected) warns.push('VOC ' + data.voc.toFixed(0) + 'ppm');
       if (data.alertNoiseState  === 1 && data.noiseConnected) warns.push('Noise ' + data.noise.toFixed(0) + 'dB');
       if (warns.length) addLogEntry('warning', 'Warning: ' + warns.join(', '), '');
     }
@@ -881,9 +881,9 @@ function updateData() {
       _lastPolledData = data;
       var time = new Date().toLocaleTimeString('en-GB');
       var dhtOk = data.dhtConnected !== false;
-      var gasOk = data.gasConnected === true;
+      var vocOk = data.vocConnected === true;
+      var voc = data.voc || 0;
       var noiseOk = data.noiseConnected === true;
-      var gas = data.gas || 0;
 
       var banner = document.getElementById('warmupBanner');
 
@@ -898,12 +898,12 @@ function updateData() {
         time: time,
         temp: dhtOk ? data.temperature : null,
         hum: dhtOk ? data.humidity : null,
-        gas: gasOk ? data.gas : null,
+        voc: vocOk ? data.voc : null,
         noise: noiseOk ? data.noise : null,
         aqi: data.aqi || -1,
         tempState: data.alertTempState,
         humState: data.alertHumState,
-        gasState: data.alertGasState
+        vocState: data.alertVocState
       };
       _sensorHistory.unshift(entry);
       if (_sensorHistory.length > 100) _sensorHistory.pop();
@@ -914,7 +914,7 @@ function updateData() {
 
       document.getElementById('tempOverlay').classList.toggle('visible', !dhtOk);
       document.getElementById('humOverlay').classList.toggle('visible', !dhtOk);
-      document.getElementById('gasOverlay').classList.toggle('visible', !gasOk);
+      document.getElementById('vocOverlay').classList.toggle('visible', !vocOk);
 
       if (dhtOk) {
         var shownTemp = displayTemp(data.temperature);
@@ -927,23 +927,32 @@ function updateData() {
         document.getElementById('humDesc').innerHTML = humDesc(data.humidity);
       }
 
-      if (gasOk) {
-        drawGauge('gasGaugeCanvas', gas, 0, 2000, gasSectors, 'ppm');
-        document.getElementById('gasLabel').innerHTML = gasLabel(gas);
-        document.getElementById('gasDesc').innerHTML = gasDesc(gas);
+      if (vocOk) {
+        drawGauge('vocGaugeCanvas', voc, 0, 2000, vocSectors, 'ppm');
+        document.getElementById('vocLabel').innerHTML = vocLabel(voc);
+        document.getElementById('vocDesc').innerHTML = vocDesc(voc);
       } else {
-        document.getElementById('gasLabel').innerHTML = '&#128268; Sensor not connected';
-        document.getElementById('gasDesc').innerHTML = gasDesc(0);
+        document.getElementById('vocLabel').innerHTML = '&#128268; Sensor not connected';
+        document.getElementById('vocDesc').innerHTML = vocDesc(0);
       }
 
       var aqi = data.aqi || -1;
       var badge = document.getElementById('indoorAqiBadge');
-      if (aqi >= 0 && gasOk) {
-        badge.textContent = 'IAI ' + aqi + ' — ' + aqiText(aqi);
+      if (aqi >= 0 && vocOk) {
+        badge.textContent = 'VOC Index ' + aqi + ' — ' + aqiText(aqi);
         badge.style.background = aqiColor(aqi);
       } else {
         badge.textContent = '--';
         badge.style.background = '#ccc';
+      }
+
+      var badgeNormalized = document.getElementById('vocNormalizedBadge');
+      if (vocOk && data.vocNormalized !== undefined && data.vocNormalized !== null) {
+        badgeNormalized.textContent = data.vocNormalized.toFixed(3);
+        badgeNormalized.style.background = '#2ecc71';
+      } else {
+        badgeNormalized.textContent = '--';
+        badgeNormalized.style.background = '#ccc';
       }
 
       document.getElementById('noiseOverlay').classList.toggle('visible', !noiseOk);
@@ -969,7 +978,7 @@ function updateData() {
         loadHistory();
       } else {
         // Push every poll to the chart (5s live updates)
-        pushLiveReading(dhtOk, gasOk, data.temperature, data.humidity, gas, time);
+        pushLiveReading(dhtOk, vocOk, data.temperature, data.humidity, voc, time);
         // Update badge when ring buffer gains a new persisted entry (every 5 min)
         if (newCount > _historyCount) {
           _historyCount = newCount;
@@ -1160,7 +1169,7 @@ document.getElementById('roomNameInput').addEventListener('keydown', function (e
 });
 
 // ── Sensor history ─────────────────────────────────────────────────────────────
-var _sensorHistory = []; // { time, temp, hum, gas, aqi, tempState, humState, gasState }
+var _sensorHistory = []; // { time, temp, hum, voc, aqi, tempState, humState, vocState }
 
 function clearSensorHistory() {
   _sensorHistory = [];
@@ -1204,7 +1213,7 @@ function renderSensorHistory() {
 
   var t = stats(valid, 'temp');
   var h = stats(valid, 'hum');
-  var g = stats(_sensorHistory.filter(function (r) { return r.gas != null && r.gas > 0; }), 'gas');
+  var g = stats(_sensorHistory.filter(function (r) { return r.voc != null && r.voc > 0; }), 'voc');
   var n = stats(_sensorHistory.filter(function (r) { return r.noise != null && r.noise > 0; }), 'noise');
 
   function row(label, s, unit, decimals) {
@@ -1226,7 +1235,7 @@ function renderSensorHistory() {
     + '<tbody>'
     + row('Temperature', t, '°C', 1)
     + row('Humidity', h, '%', 0)
-    + (g.last ? row('Air Quality', g, ' ppm', 0) : '')
+    + (g.last ? row('VOC', g, ' ppm', 0) : '')
     + (n.last ? row('Noise Level', n, ' dB', 0) : '')
     + '</tbody></table>';
 }
@@ -1248,7 +1257,7 @@ function exportChartData() {
 
   addTimes(tempChart.data.labels);
   addTimes(humChart.data.labels);
-  addTimes(gasChart.data.labels);
+  addTimes(vocChart.data.labels);
   addTimes(noiseChart.data.labels);
 
   // Parse time parts for chronological sorting (handling formats HH:MM and HH:MM:SS)
@@ -1270,7 +1279,7 @@ function exportChartData() {
       var time = labels[i];
       var val = dataset[i];
       if (!dataByTime[time]) {
-        dataByTime[time] = { temp: null, hum: null, gas: null, noise: null };
+        dataByTime[time] = { temp: null, hum: null, voc: null, noise: null };
       }
       dataByTime[time][key] = val;
     }
@@ -1278,19 +1287,19 @@ function exportChartData() {
 
   collectChartData(tempChart, 'temp');
   collectChartData(humChart, 'hum');
-  collectChartData(gasChart, 'gas');
+  collectChartData(vocChart, 'voc');
   collectChartData(noiseChart, 'noise');
 
   var placeholder = 'N/A';
-  var rows = ['Time,Temperature (' + tempUnitLabel() + '),Humidity (%),Air Quality (ppm),Noise Level (dB)'];
+  var rows = ['Time,Temperature (' + tempUnitLabel() + '),Humidity (%),VOC (ppm),Noise Level (dB)'];
   for (var i = 0; i < times.length; i++) {
     var t = times[i];
     var d = dataByTime[t];
     var tempVal = (d && d.temp !== null && d.temp !== undefined) ? d.temp : placeholder;
     var humVal = (d && d.hum !== null && d.hum !== undefined) ? d.hum : placeholder;
-    var gasVal = (d && d.gas !== null && d.gas !== undefined) ? d.gas : placeholder;
+    var vocVal = (d && d.voc !== null && d.voc !== undefined) ? d.voc : placeholder;
     var noiseVal = (d && d.noise !== null && d.noise !== undefined) ? d.noise : placeholder;
-    rows.push([t, tempVal, humVal, gasVal, noiseVal].join(','));
+    rows.push([t, tempVal, humVal, vocVal, noiseVal].join(','));
   }
 
   var blob = new Blob([rows.join('\r\n')], { type: 'text/csv' });
@@ -1344,7 +1353,7 @@ function setTheme(theme) {
   
   // Update charts grid/text
   var isDark = theme === 'dark';
-  [tempChart, humChart, gasChart, noiseChart].forEach(function(chart) {
+  [tempChart, humChart, vocChart, noiseChart].forEach(function(chart) {
     applyChartTheme(chart, isDark);
   });
   
@@ -1352,14 +1361,14 @@ function setTheme(theme) {
   var data = _lastPolledData;
   if (data) {
     var dhtOk = data.dhtConnected !== false;
-    var gasOk = data.gasConnected === true;
+    var vocOk = data.vocConnected === true;
     var noiseOk = data.noiseConnected === true;
     if (dhtOk) {
       drawGauge('tempGaugeCanvas', data.temperature, 0, 50, tempSectors, '°C');
       drawGauge('humGaugeCanvas', data.humidity, 0, 100, humSectors, '%');
     }
-    if (gasOk) {
-      drawGauge('gasGaugeCanvas', data.gas || 0, 0, 2000, gasSectors, 'ppm');
+    if (vocOk) {
+      drawGauge('vocGaugeCanvas', data.voc || 0, 0, 2000, vocSectors, 'ppm');
     }
     if (noiseOk) {
       drawGauge('noiseGaugeCanvas', data.noise, 0, 120, noiseSectors, 'dB');
