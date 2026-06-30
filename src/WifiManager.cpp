@@ -102,11 +102,13 @@ static String buildSuccessPage(const String& ssid) {
   .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.10);padding:32px 28px;width:100%;max-width:400px;text-align:center;}
   h2{color:#1e8449;margin-bottom:12px;}
   p{font-size:14px;color:#555;line-height:1.6;}
+  a{color:#3498db;text-decoration:none;font-weight:bold;}
+  a:hover{text-decoration:underline;}
 </style></head><body>
 <div class='card'>
   <h2>&#10003; Connected!</h2>
   <p>Successfully joined <strong>)" + ssid + R"(</strong>.<br><br>
-  The sensor is restarting. Connect back to your home WiFi and open the sensor's IP address in your browser.</p>
+  The sensor is restarting. Connect back to your home WiFi and open the sensor's IP address in your browser (displayed on the OLED screen).</p>
 </div>
 </body></html>)";
 }

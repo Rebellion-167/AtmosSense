@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <qrcode.h>
 
 #define SCREEN_W  128
 #define SCREEN_H   64
@@ -468,6 +469,47 @@ static void drawPageSystem() {
     _disp.print("AtmosSense  v1.0");
 }
 
+// ── Page 6 — QR Connect ───────────────────────────────────────────────────────
+static void drawPageQR() {
+    static QRCode qrcode;
+    static uint8_t qrcodeData[128];
+    static char lastIp[20] = "";
+
+    if (strcmp(lastIp, _ip) != 0) {
+        char url[40];
+        snprintf(url, sizeof(url), "http://%s", _ip);
+        qrcode_initText(&qrcode, qrcodeData, 3, ECC_LOW, url);
+        strncpy(lastIp, _ip, sizeof(lastIp) - 1);
+        Serial.println("[OLED] Regenerating QR Code cache for new IP");
+    }
+
+    _disp.setTextSize(1);
+    _disp.setCursor(0, 10);
+    _disp.print("SCAN TO");
+    _disp.setCursor(0, 20);
+    _disp.print("CONNECT");
+    
+    _disp.setCursor(0, 38);
+    _disp.print("IP address:");
+    _disp.setCursor(0, 48);
+    _disp.print(_ip);
+
+    int qrX = 68;
+    int qrY = 3;
+    int scale = 2;
+    int size = qrcode.size * scale;
+
+    // Draw white background quiet zone
+    _disp.fillRect(qrX - 2, qrY - 2, size + 4, size + 4, SSD1306_WHITE);
+
+    for (uint8_t y = 0; y < qrcode.size; y++) {
+        for (uint8_t x = 0; x < qrcode.size; x++) {
+            if (qrcode_getModule(&qrcode, x, y)) {
+                _disp.fillRect(qrX + x * scale, qrY + y * scale, scale, scale, SSD1306_BLACK);
+            }
+        }
+    }
+}
 
 static bool anyDanger() {
     return (_tempState == 2 || _humState == 2 || _vocState == 2);
@@ -490,6 +532,7 @@ static void redraw() {
         case 3: drawPageVoc();      break;
         case 4: drawPageNoise();    break;
         case 5: drawPageSystem();   break;
+        case 6: drawPageQR();       break;
     }
     _disp.display();
 }
@@ -702,9 +745,14 @@ void oledSetData(const char* room,
 }
 
 void oledSetSystem(const char* ip, unsigned long uptimeSeconds) {
+    bool ipChanged = strcmp(_ip, ip ? ip : "0.0.0.0") != 0;
     strncpy(_ip, ip ? ip : "0.0.0.0", sizeof(_ip) - 1);
     _uptimeSec = uptimeSeconds;
-    if (_ready && !_inStatus && !_dangerActive && _page == 4) redraw();
+    if (_ready && !_inStatus && !_dangerActive) {
+        if (_page == 5 || (_page == 6 && ipChanged)) {
+            redraw();
+        }
+    }
 }
 
 void oledTick() {

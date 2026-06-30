@@ -26,7 +26,8 @@
 // 3 — Air Quality: ppm, AQI, status, min/max
 // 4 - Noise Level
 // 5 — System Info: room name, IP address, uptime, AtmosSense
-#define OLED_PAGES 6
+// 6 — QR Connect  : scannable QR code linking to dashboard URL
+#define OLED_PAGES 7
 
 // Call once in setup()
 void oledBegin();
